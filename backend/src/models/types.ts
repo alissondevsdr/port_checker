@@ -21,7 +21,7 @@ export interface Client {
   group_id?: number | null;
   ip_interno: string;
   provedor_internet: string;
-  status: 'PENDING' | 'OK' | 'ERROR' | 'PARTIAL';
+  status: 'PENDING' | 'OK' | 'ERROR';
   last_test?: string;
   avg_response_time?: number;
 }

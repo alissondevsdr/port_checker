@@ -1,191 +1,519 @@
-import React, { useState, useEffect } from 'react';
-import { X, Search, Building2, Globe, Hash, Server, Wifi } from 'lucide-react';
+import React, { useEffect, useMemo, useState, memo } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  X,
+  Search,
+  Building2,
+  Globe,
+  Hash,
+  Server,
+  Wifi,
+  Phone,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { lookupCNPJ, createClient, updateClient } from '../services/api';
 
-interface ClientModalProps {
+interface Props {
   client?: any;
   groups: any[];
   onClose: () => void;
   onSave: () => void;
 }
 
-const ClientModal: React.FC<ClientModalProps> = ({ client, groups, onClose, onSave }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    cnpj: '',
-    host: '',
-    ports: '',
-    group_id: '',
-    ip_interno: '',
-    provedor_internet: ''
-  });
-  const [loading, setLoading] = useState(false);
+interface FieldProps {
+  label: string;
+  icon?: any;
+  children: React.ReactNode;
+  hint?: string;
+}
+
+const EMPTY = {
+  name: '',
+  cnpj: '',
+  phone: '',
+  host: '',
+  ports: '',
+  group_id: '',
+  ip_interno: '',
+  provedor_internet: '',
+};
+
+const onlyNumbers = (v: string) => v.replace(/\D/g, '');
+
+const formatCNPJ = (value: string) => {
+  const v = onlyNumbers(value).slice(0, 14);
+
+  return v
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+};
+
+const formatPhone = (value: string) => {
+  const v = onlyNumbers(value).slice(0, 11);
+
+  if (v.length <= 10) {
+    return v
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4})(\d)/, '$1-$2');
+  }
+
+  return v
+    .replace(/^(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2');
+};
+
+const Field = memo(
+  ({ label, icon: Icon, children, hint }: FieldProps) => (
+    <div className="flex flex-col gap-1.5">
+      <label
+        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest"
+        style={{ color: '#64748b' }}
+      >
+        {Icon && <Icon size={11} style={{ color: '#60a5fa' }} />}
+        {label}
+      </label>
+
+      {children}
+
+      {hint && (
+        <span className="text-xs" style={{ color: '#475569' }}>
+          {hint}
+        </span>
+      )}
+    </div>
+  )
+);
+
+const ClientModal: React.FC<Props> = ({
+  client,
+  groups,
+  onClose,
+  onSave,
+}) => {
+  const [form, setForm] = useState({ ...EMPTY });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const [cnpjError, setCnpjError] = useState('');
 
   useEffect(() => {
-    if (client) {
-      setFormData({
-        ...client,
-        ports: Array.isArray(client.ports) ? client.ports.join(', ') : client.ports,
-        group_id: client.group_id || ''
-      });
-    }
-  }, [client]);
+    document.body.style.overflow = 'hidden';
 
-  const handleCNPJLookup = async () => {
-    const cleanCnpj = formData.cnpj.replace(/\D/g, '');
-    if (cleanCnpj.length !== 14) {
-      alert('Informe um CNPJ válido com 14 dígitos');
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    window.addEventListener('keydown', esc);
+
+    return () => window.removeEventListener('keydown', esc);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!client) {
+      setForm({ ...EMPTY });
       return;
     }
-    setLoading(true);
+
+    setForm({
+      ...EMPTY,
+      ...client,
+      cnpj: formatCNPJ(client.cnpj || ''),
+      phone: formatPhone(client.phone || ''),
+      ports: Array.isArray(client.ports)
+        ? client.ports.join(', ')
+        : client.ports || '',
+      group_id:
+        client.group_id !== null &&
+        client.group_id !== undefined
+          ? String(client.group_id)
+          : '',
+    });
+
+    setError('');
+    setCnpjError('');
+  }, [client]);
+
+  const cleanCNPJ = useMemo(
+    () => onlyNumbers(form.cnpj),
+    [form.cnpj]
+  );
+
+  const updateField = (key: string, value: string) => {
+    setForm((old) => ({
+      ...old,
+      [key]: value,
+    }));
+  };
+
+  const handleLookupCNPJ = async () => {
+    if (cleanCNPJ.length !== 14) {
+      setCnpjError('CNPJ inválido');
+      return;
+    }
+
     try {
-      const res = await lookupCNPJ(cleanCnpj);
-      const companyName = res.data.razao_social || res.data.nome_fantasia || "Empresa não encontrada";
-      setFormData(prev => ({
-        ...prev,
-        cnpj: cleanCnpj,
-        name: companyName
+      setCnpjLoading(true);
+      setCnpjError('');
+
+      const { data } = await lookupCNPJ(cleanCNPJ);
+
+      setForm((old) => ({
+        ...old,
+        name:
+          data.razao_social ||
+          data.nome_fantasia ||
+          old.name,
       }));
-    } catch (error) {
-      alert('Erro na consulta do CNPJ. Verifique a conexão ou se o número está correto.');
+    } catch (err: any) {
+      setCnpjError(
+        err?.message || 'Erro ao consultar CNPJ'
+      );
     } finally {
-      setLoading(false);
+      setCnpjLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
-    const ports = formData.ports.split(',').map(p => parseInt(p.trim())).filter(p => !isNaN(p));
-    const data = { ...formData, ports };
-    
+
     try {
-      if (client?.id) {
-        await updateClient(client.id, data);
-      } else {
-        await createClient(data);
+      setSaving(true);
+      setError('');
+
+      const ports = form.ports
+        .split(/[,\s]+/)
+        .map(Number)
+        .filter(
+          (p) =>
+            !isNaN(p) &&
+            p > 0 &&
+            p < 65536
+        );
+
+      if (!ports.length) {
+        setError(
+          'Informe ao menos uma porta válida'
+        );
+        setSaving(false);
+        return;
       }
+
+      const payload = {
+        ...form,
+        cnpj: cleanCNPJ,
+        phone: onlyNumbers(form.phone),
+        ports,
+        group_id: form.group_id
+          ? Number(form.group_id)
+          : null,
+      };
+
+      if (client?.id) {
+        await updateClient(client.id, payload);
+      } else {
+        await createClient(payload);
+      }
+
       onSave();
-    } catch (error) {
-      alert('Erro ao salvar cliente');
+    } catch (err: any) {
+      setError(err?.message || 'Erro ao salvar');
+    } finally {
+      setSaving(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-[#000]/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="dark-card w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-white/5 bg-[#1e1e2e]">
-        <div className="flex items-center justify-between p-6 border-b border-white/5 bg-sidebar/50">
-          <h3 className="text-xl font-black text-white uppercase tracking-tighter">
-            {client ? 'Editar Cliente' : 'Novo Cliente'}
-          </h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-500">
-            <X size={24} />
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{
+        background: 'rgba(0,0,0,.75)',
+        backdropFilter: 'blur(5px)',
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="card w-full animate-in fade-in zoom-in duration-200"
+        style={{
+          maxWidth: '920px',
+          width: '100%',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
+          style={{
+            background: '#141420',
+            borderBottom:
+              '1px solid rgba(255,255,255,.06)',
+          }}
+        >
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-white">
+              {client
+                ? 'Editar Cliente'
+                : 'Novo Cliente'}
+            </h2>
+
+            <p
+              className="text-xs mt-1"
+              style={{ color: '#64748b' }}
+            >
+              Cadastro de monitoramento
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-ghost p-2"
+          >
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <Hash size={14} className="text-blue-500" /> CNPJ
-              </label>
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 flex flex-col gap-5"
+        >
+          {error && (
+            <div
+              className="rounded-xl px-4 py-3 flex gap-2 text-sm"
+              style={{
+                background:
+                  'rgba(239,68,68,.08)',
+                border:
+                  '1px solid rgba(239,68,68,.18)',
+                color: '#f87171',
+              }}
+            >
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="CNPJ" icon={Hash}>
               <div className="relative">
-                <input 
-                  type="text" 
-                  className="dark-input pr-12"
-                  value={formData.cnpj}
-                  onChange={e => setFormData({...formData, cnpj: e.target.value})}
+                <input
+                  className="field pr-10"
+                  value={form.cnpj}
+                  placeholder="00.000.000/0000-00"
+                  onChange={(e) => {
+                    setCnpjError('');
+                    updateField(
+                      'cnpj',
+                      formatCNPJ(
+                        e.target.value
+                      )
+                    );
+                  }}
                 />
-                <button 
+
+                <button
                   type="button"
-                  onClick={handleCNPJLookup}
-                  disabled={loading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
+                  onClick={handleLookupCNPJ}
+                  disabled={cnpjLoading}
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
                 >
-                  {loading ? <RefreshCw size={16} className="animate-spin" /> : <Search size={16} />}
+                  {cnpjLoading ? (
+                    <RefreshCw
+                      size={14}
+                      className="spin"
+                    />
+                  ) : (
+                    <Search size={14} />
+                  )}
                 </button>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <Building2 size={14} className="text-blue-500" /> Nome / Razão Social
-              </label>
-              <input 
-                type="text" required
-                className="dark-input"
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
+              {cnpjError && (
+                <span
+                  className="text-xs"
+                  style={{
+                    color: '#f87171',
+                  }}
+                >
+                  {cnpjError}
+                </span>
+              )}
+            </Field>
+
+            <Field
+              label="Nome / Razão Social"
+              icon={Building2}
+            >
+              <input
+                required
+                className="field"
+                value={form.name}
+                onChange={(e) =>
+                  updateField(
+                    'name',
+                    e.target.value
+                  )
+                }
               />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <Globe size={14} className="text-blue-500" /> Host / IP
-              </label>
-              <input 
-                type="text" required
-                placeholder="ex: matriz.dns.com"
-                className="dark-input"
-                value={formData.host}
-                onChange={e => setFormData({...formData, host: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <Server size={14} className="text-blue-500" /> Portas (ex: 80, 443)
-              </label>
-              <input 
-                type="text" required
-                className="dark-input"
-                value={formData.ports}
-                onChange={e => setFormData({...formData, ports: e.target.value})}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Grupo</label>
-              <select 
-                className="dark-input appearance-none"
-                value={formData.group_id}
-                onChange={e => setFormData({...formData, group_id: e.target.value})}
-              >
-                <option value="">Sem Grupo</option>
-                {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <Wifi size={14} className="text-blue-500" /> Provedor
-              </label>
-              <input 
-                type="text"
-                className="dark-input"
-                value={formData.provedor_internet}
-                onChange={e => setFormData({...formData, provedor_internet: e.target.value})}
-              />
-            </div>
+            </Field>
           </div>
 
-          <div className="pt-8 flex gap-4">
-            <button 
-              type="button" 
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Telefone" icon={Phone}>
+              <input
+                className="field"
+                value={form.phone}
+                onChange={(e) =>
+                  updateField(
+                    'phone',
+                    formatPhone(
+                      e.target.value
+                    )
+                  )
+                }
+              />
+            </Field>
+
+            <Field label="Grupo">
+              <select
+                className="field"
+                value={form.group_id}
+                onChange={(e) =>
+                  updateField(
+                    'group_id',
+                    e.target.value
+                  )
+                }
+              >
+                <option value="">
+                  Sem grupo
+                </option>
+
+                {groups.map((g) => (
+                  <option
+                    key={g.id}
+                    value={g.id}
+                  >
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field
+              label="Host / IP"
+              icon={Globe}
+            >
+              <input
+                required
+                className="field"
+                value={form.host}
+                onChange={(e) =>
+                  updateField(
+                    'host',
+                    e.target.value
+                  )
+                }
+              />
+            </Field>
+
+            <Field
+              label="Portas"
+              icon={Server}
+              hint="Separe por vírgula"
+            >
+              <input
+                required
+                className="field"
+                value={form.ports}
+                onChange={(e) =>
+                  updateField(
+                    'ports',
+                    e.target.value
+                  )
+                }
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field
+              label="Provedor"
+              icon={Wifi}
+            >
+              <input
+                className="field"
+                value={
+                  form.provedor_internet
+                }
+                onChange={(e) =>
+                  updateField(
+                    'provedor_internet',
+                    e.target.value
+                  )
+                }
+              />
+            </Field>
+
+            <Field label="IP Interno">
+              <input
+                className="field"
+                value={form.ip_interno}
+                onChange={(e) =>
+                  updateField(
+                    'ip_interno',
+                    e.target.value
+                  )
+                }
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <button
+              type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-4 border border-white/5 text-slate-400 rounded-2xl font-bold hover:bg-white/5 transition-colors uppercase text-xs tracking-widest"
+              className="btn btn-ghost"
             >
               Cancelar
             </button>
-            <button 
+
+            <button
               type="submit"
-              className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-900/30 uppercase text-xs tracking-widest"
+              disabled={saving}
+              className="btn btn-primary"
             >
-              {client ? 'Atualizar' : 'Salvar Cliente'}
+              {saving && (
+                <RefreshCw
+                  size={14}
+                  className="spin"
+                />
+              )}
+
+              {saving
+                ? 'Salvando...'
+                : client
+                ? 'Atualizar'
+                : 'Criar Cliente'}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

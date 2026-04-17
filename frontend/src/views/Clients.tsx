@@ -1,217 +1,381 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Search, RefreshCw, Edit2, Trash2, 
-  CheckCircle2, XCircle, AlertCircle, Play, 
-  Globe, Hash, Filter, Zap
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Plus, Search, RefreshCw, Edit2, Trash2,
+  Play, Globe, Zap,
+  Phone, Wifi, Clock, ChevronDown, ChevronUp,
+  AlertCircle,
 } from 'lucide-react';
 import { getClients, testClient, deleteClient, getGroups, testAllClients } from '../services/api';
 import ClientModal from '../components/ClientModal';
 
-const Clients = () => {
-  const [clients, setClients] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+const statusDot = (s: string) => {
+  if (s === 'OK')      return 'dot dot-ok';
+  if (s === 'ERROR')   return 'dot dot-error';
+  return 'dot dot-pending';
+};
+
+const statusChip = (s: string) => {
+  if (s === 'OK')      return 'chip chip-ok';
+  if (s === 'ERROR')   return 'chip chip-error';
+  return 'chip chip-pending';
+};
+
+type Sort = 'name' | 'status' | 'last_test' | 'avg_response_ms';
+
+// ── ClientCard ────────────────────────────────────────────────────────────────
+
+const ClientCard = ({
+  client,
+  onTest,
+  onEdit,
+  onDelete,
+  testing,
+}: {
+  client: any;
+  onTest: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  testing: boolean;
+}) => {
+  const [confirmDel, setConfirmDel] = useState(false);
+
+  return (
+    <div
+      className="px-5 py-4 transition-colors"
+      style={{
+        borderBottom: '1px solid #1a1a2a',
+        background: client.status === 'ERROR' ? 'rgba(239,68,68,.02)' : 'transparent',
+      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.015)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = client.status === 'ERROR' ? 'rgba(239,68,68,.02)' : 'transparent'; }}
+    >
+      <div className="flex items-start gap-3">
+        {/* Status dot */}
+        <div className={`${statusDot(client.status)} mt-2 flex-shrink-0`} />
+
+        {/* Info block */}
+        <div className="flex-1 min-w-0">
+
+          {/* Row 1: name + status + CNPJ */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm text-white">{client.name}</span>
+            <span className={statusChip(client.status)}>{client.status}</span>
+            {client.group_name && (
+              <span
+                className="text-xs px-2 py-0.5 rounded font-semibold"
+                style={{ background: 'rgba(59,130,246,.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,.15)' }}
+              >
+                {client.group_name}
+              </span>
+            )}
+            {client.cnpj && (
+              <span className="font-mono text-xs" style={{ color: '#475569' }}>
+                {client.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}
+              </span>
+            )}
+          </div>
+
+          {/* Row 2: host + ports */}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className="flex items-center gap-1 font-mono text-xs" style={{ color: '#6b7280' }}>
+              <Globe size={11} style={{ color: '#3b82f6' }} />
+              {client.host}
+            </span>
+            {(client.ports || []).length > 0 && (
+              <>
+                <span className="text-xs" style={{ color: '#374151' }}>|</span>
+                <div className="flex gap-1 flex-wrap">
+                  {(client.ports || []).map((p: number) => (
+                    <span key={p} className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: '#1a1a2a', color: '#6b7280', border: '1px solid #252535' }}>
+                      :{p}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Row 3: contact + timing */}
+          <div className="flex items-center gap-4 mt-1.5 flex-wrap text-xs" style={{ color: '#475569' }}>
+            {client.provedor_internet && (
+              <span className="flex items-center gap-1">
+                <Wifi size={10} /> {client.provedor_internet}
+              </span>
+            )}
+            {client.phone && (
+              <a
+                href={`https://wa.me/55${client.phone.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 transition-colors"
+                style={{ color: '#475569' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#22c55e'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#475569'; }}
+                title="Abrir no WhatsApp"
+              >
+                <Phone size={10} /> {client.phone}
+              </a>
+            )}
+            {client.ip_interno && (
+              <span className="font-mono">{client.ip_interno}</span>
+            )}
+            {client.last_test ? (
+              <span className="flex items-center gap-1">
+                <Clock size={10} />
+                {new Date(client.last_test).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+              </span>
+            ) : (
+              <span style={{ color: '#334155', fontStyle: 'italic' }}>Nunca testado</span>
+            )}
+            {client.avg_response_ms && (
+              <span className="font-mono" style={{ color: '#3b82f6' }}>
+                {Math.round(client.avg_response_ms)}ms
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {confirmDel ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)' }}>
+              <span style={{ color: '#f87171' }}>Excluir?</span>
+              <button onClick={onDelete} className="font-bold underline" style={{ color: '#f87171' }}>Sim</button>
+              <button onClick={() => setConfirmDel(false)} style={{ color: '#64748b' }}>Não</button>
+            </div>
+          ) : (
+            <>
+              <button onClick={onTest} disabled={testing} className="btn btn-ghost" style={{ padding: '6px 10px' }} title="Testar">
+                {testing ? <RefreshCw size={13} className="spin" /> : <Play size={13} />}
+              </button>
+              <button onClick={onEdit} className="btn btn-ghost" style={{ padding: '6px 10px' }} title="Editar">
+                <Edit2 size={13} />
+              </button>
+              <button onClick={() => setConfirmDel(true)} className="btn btn-danger" style={{ padding: '6px 10px' }} title="Excluir">
+                <Trash2 size={13} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Clients (main view) ───────────────────────────────────────────────────────
+
+const Clients: React.FC = () => {
+  const [clients, setClients]     = useState<any[]>([]);
+  const [groups, setGroups]       = useState<any[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [filterGroup, setFGroup]  = useState('');
+  const [filterStatus, setFStatus]= useState('');
   const [testingId, setTestingId] = useState<number | null>(null);
-  const [isTestingAll, setIsTestingAll] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<any>(null);
+  const [testingAll, setTestAll]  = useState(false);
+  const [modal, setModal]         = useState(false);
+  const [editClient, setEdit]     = useState<any>(null);
+  const [sortKey, setSortKey]     = useState<Sort>('name');
+  const [sortAsc, setSortAsc]     = useState(true);
 
-  const loadData = async () => {
+  const load = useCallback(async () => {
     try {
-      const [cRes, gRes] = await Promise.all([getClients(), getGroups()]);
-      setClients(cRes.data);
-      setGroups(gRes.data);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
+      const [cR, gR] = await Promise.all([getClients(), getGroups()]);
+      setClients(cR.data);
+      setGroups(gR.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleTest = async (id: number) => {
     setTestingId(id);
-    try {
-      await testClient(id);
-      await loadData();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setTestingId(null);
-    }
+    try { await testClient(id); await load(); }
+    finally { setTestingId(null); }
   };
 
   const handleTestAll = async () => {
-    if (isTestingAll) return;
-    setIsTestingAll(true);
-    try {
-      await testAllClients();
-      await loadData();
-    } catch (error) {
-      alert('Erro ao testar todos');
-    } finally {
-      setIsTestingAll(false);
-    }
+    setTestAll(true);
+    try { await testAllClients(); await load(); }
+    finally { setTestAll(false); }
   };
 
-  const filteredClients = clients.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.host.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.cnpj.includes(searchTerm)
+  const handleDelete = async (id: number) => {
+    try { await deleteClient(id); await load(); }
+    catch (e: any) { alert('Erro ao excluir: ' + e.message); }
+  };
+
+  const toggleSort = (k: Sort) => {
+    if (sortKey === k) setSortAsc(a => !a);
+    else { setSortKey(k); setSortAsc(true); }
+  };
+
+  const filtered = [...clients]
+    .filter(c => {
+      const q = search.toLowerCase();
+      const mQ = !q || c.name.toLowerCase().includes(q) || c.host.toLowerCase().includes(q) || (c.cnpj || '').includes(q) || (c.phone || '').includes(q);
+      const mG = !filterGroup  || String(c.group_id) === filterGroup;
+      const mS = !filterStatus || c.status === filterStatus;
+      return mQ && mG && mS;
+    })
+    .sort((a, b) => {
+      let va = a[sortKey] ?? '', vb = b[sortKey] ?? '';
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      return sortAsc ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0);
+    });
+
+  const SIcon = ({ k }: { k: Sort }) => (
+    sortKey === k
+      ? (sortAsc ? <ChevronUp size={11} style={{ color: '#60a5fa' }} /> : <ChevronDown size={11} style={{ color: '#60a5fa' }} />)
+      : <ChevronDown size={11} style={{ color: '#334155' }} />
   );
 
+  const ok  = clients.filter(c => c.status === 'OK').length;
+  const err = clients.filter(c => c.status === 'ERROR').length;
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 bg-[#0b0b10]">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="fade-up">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">Clientes</h2>
-          <p className="text-slate-500 mt-1">Gerenciamento de pontos de monitoramento</p>
+          <h2 className="text-xl font-bold text-white">Clientes</h2>
+          <p className="text-sm mt-0.5" style={{ color: '#475569' }}>
+            {clients.length} cadastrados ·{' '}
+            <span style={{ color: '#22c55e' }}>{ok} OK</span>
+            {err > 0 && <> · <span style={{ color: '#ef4444' }}>{err} com erro</span></>}
+          </p>
         </div>
-        <div className="flex gap-3">
-          <button 
+        <div className="flex gap-2 flex-shrink-0">
+          <button
             onClick={handleTestAll}
-            disabled={isTestingAll}
-            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-xl ${
-              isTestingAll 
-              ? 'bg-[#1e1e2e] text-slate-500 cursor-not-allowed' 
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-900/20'
-            }`}
+            disabled={testingAll || clients.length === 0}
+            className="btn btn-success"
           >
-            {isTestingAll ? <RefreshCw size={18} className="animate-spin" /> : <Zap size={18} />}
-            {isTestingAll ? 'Testando...' : 'Testar Todos'}
+            {testingAll ? <RefreshCw size={14} className="spin" /> : <Zap size={14} />}
+            {testingAll ? 'Testando...' : 'Testar Todos'}
           </button>
-          <button 
-            onClick={() => { setEditingClient(null); setIsModalOpen(true); }}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-blue-900/20"
+          <button
+            onClick={() => { setEdit(null); setModal(true); }}
+            className="btn btn-primary"
           >
-            <Plus size={18} />
-            Novo Cliente
+            <Plus size={14} /> Novo Cliente
           </button>
         </div>
       </div>
 
-      {isModalOpen && (
-        <ClientModal 
-          client={editingClient}
-          groups={groups}
-          onClose={() => setIsModalOpen(false)}
-          onSave={() => { setIsModalOpen(false); loadData(); }}
-        />
-      )}
-
-      <div className="dark-card overflow-hidden bg-[#181825]/50">
-        <div className="p-4 border-b border-white/5 bg-[#11111b]/50 flex flex-col md:flex-row gap-4">
+      {/* Filters */}
+      <div className="card overflow-hidden mb-0" style={{ borderRadius: '12px 12px 0 0', borderBottom: 'none' }}>
+        <div className="px-4 py-3 flex flex-col sm:flex-row gap-3" style={{ borderBottom: '1px solid #1a1a2a' }}>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={20} />
-            <input 
-              type="text" 
-              placeholder="Buscar por nome, host ou CNPJ..."
-              className="dark-input pl-10 border-white/5 focus:border-blue-500/50"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#475569' }} />
+            <input
+              className="field pl-9 text-sm"
+              placeholder="Buscar por nome, host, CNPJ ou telefone..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
-             <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
-                <select className="dark-input pl-10 pr-8 appearance-none cursor-pointer bg-[#11111b] border-white/5">
-                  <option value="">Todos os Grupos</option>
-                  {groups.map(g => <option key={g.id} value={g.id} className="bg-[#11111b]">{g.name}</option>)}
-                </select>
-             </div>
+            <select
+              className="field text-xs appearance-none cursor-pointer"
+              style={{ minWidth: 130 }}
+              value={filterGroup}
+              onChange={e => setFGroup(e.target.value)}
+            >
+              <option value="">Todos os Grupos</option>
+              {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+            <select
+              className="field text-xs appearance-none cursor-pointer"
+              style={{ minWidth: 120 }}
+              value={filterStatus}
+              onChange={e => setFStatus(e.target.value)}
+            >
+              <option value="">Todo Status</option>
+              <option value="OK">OK</option>
+              <option value="ERROR">Erro</option>
+              <option value="PENDING">Pendente</option>
+            </select>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/5 bg-[#11111b]/30">
-                <th className="px-6 py-4">Cliente / CNPJ</th>
-                <th className="px-6 py-4">Host / Portas</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4">Último Teste</th>
-                <th className="px-6 py-4 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-white/[0.02] transition-colors group">
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-200">{client.name}</span>
-                      <span className="text-[10px] text-slate-600 flex items-center gap-1 mt-1 font-mono">
-                        <Hash size={10} /> {client.cnpj || '—'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-400 flex items-center gap-1.5 font-mono">
-                        <Globe size={14} className="text-blue-500/30" /> {client.host}
-                      </span>
-                      <div className="flex gap-1 mt-2 flex-wrap max-w-xs">
-                        {client.ports.map((p: number) => (
-                          <span key={p} className="text-[9px] px-1.5 py-0.5 bg-[#0b0b10] text-slate-500 rounded border border-white/5 font-mono">
-                            {p}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${
-                      client.status === 'OK' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                      client.status === 'ERROR' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                      'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                    }`}>
-                      {client.status}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-slate-400">
-                        {client.last_test ? new Date(client.last_test).toLocaleString('pt-BR') : 'Nunca'}
-                      </span>
-                      {client.avg_response_ms && (
-                        <span className="text-[10px] text-slate-600 font-mono mt-1">{Math.round(client.avg_response_ms)}ms</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={() => handleTest(client.id)}
-                        disabled={testingId === client.id}
-                        className={`p-2 rounded-xl transition-all ${
-                          testingId === client.id ? 'bg-blue-500/20 text-blue-400 animate-spin' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-600 hover:text-white'
-                        }`}
-                      >
-                        <Play size={16} fill="currentColor" />
-                      </button>
-                      <button 
-                        onClick={() => { setEditingClient(client); setIsModalOpen(true); }}
-                        className="p-2 bg-slate-800/50 text-slate-400 rounded-xl hover:bg-slate-700 hover:text-white transition-all border border-white/5"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={() => deleteClient(client.id).then(loadData)}
-                        className="p-2 bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-500/20"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Sort bar */}
+        <div
+          className="px-5 py-2 flex items-center gap-6 text-xs font-semibold uppercase tracking-widest select-none"
+          style={{ background: 'rgba(0,0,0,.2)', borderBottom: '1px solid #1a1a2a', color: '#475569' }}
+        >
+          {([
+            ['name', 'Cliente'],
+            ['status', 'Status'],
+            ['last_test', 'Último Teste'],
+            ['avg_response_ms', 'Latência'],
+          ] as [Sort, string][]).map(([k, label]) => (
+            <button
+              key={k}
+              className="flex items-center gap-1 cursor-pointer transition-colors"
+              style={{ color: sortKey === k ? '#94a3b8' : '#475569' }}
+              onClick={() => toggleSort(k)}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#94a3b8'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = sortKey === k ? '#94a3b8' : '#475569'; }}
+            >
+              {label} <SIcon k={k} />
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Client cards */}
+      <div className="card overflow-hidden" style={{ borderRadius: '0 0 12px 12px' }}>
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="px-5 py-4 animate-pulse" style={{ borderBottom: '1px solid #1a1a2a' }}>
+              <div className="flex gap-3 items-start">
+                <div className="dot bg-slate-800 mt-2" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 rounded bg-slate-800 w-52" />
+                  <div className="h-3 rounded bg-slate-800 w-80" />
+                  <div className="h-3 rounded bg-slate-800 w-64" />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center">
+            <AlertCircle size={32} style={{ color: '#1e293b', margin: '0 auto 12px' }} />
+            <p className="text-sm" style={{ color: '#475569' }}>
+              {clients.length === 0 ? 'Nenhum cliente cadastrado.' : 'Nenhum resultado para os filtros.'}
+            </p>
+          </div>
+        ) : (
+          filtered.map(c => (
+            <ClientCard
+              key={c.id}
+              client={c}
+              testing={testingId === c.id}
+              onTest={() => handleTest(c.id)}
+              onEdit={() => { setEdit(c); setModal(true); }}
+              onDelete={() => handleDelete(c.id)}
+            />
+          ))
+        )}
+
+        {filtered.length > 0 && (
+          <div className="px-5 py-2.5 text-xs" style={{ color: '#334155', borderTop: '1px solid #1a1a2a' }}>
+            {filtered.length} de {clients.length} clientes
+          </div>
+        )}
+      </div>
+
+      {modal && (
+        <ClientModal
+          client={editClient}
+          groups={groups}
+          onClose={() => { setModal(false); setEdit(null); }}
+          onSave={() => { setModal(false); setEdit(null); load(); }}
+        />
+      )}
     </div>
   );
 };

@@ -1,44 +1,38 @@
 import axios from 'axios';
 
-const API_URL = "https://brasilapi.com.br/api/cnpj/v1/";
+const APIS = [
+  (cnpj: string) => `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`,
+  (cnpj: string) => `https://publica.cnpj.ws/cnpj/${cnpj}`,
+];
 
 export async function fetchCNPJ(cnpj: string) {
-    const cleanCnpj = cnpj.replace(/\D/g, '');
-    
-    if (cleanCnpj.length !== 14) {
-        throw new Error("CNPJ inválido. Informe 14 dígitos.");
-    }
+  const clean = cnpj.replace(/\D/g, '');
+  if (clean.length !== 14) throw new Error('CNPJ inválido — informe 14 dígitos.');
 
+  let lastError: Error | null = null;
+
+  for (const buildUrl of APIS) {
     try {
-        // Usando um User-Agent real para evitar bloqueios da API
-        const response = await axios.get(`${API_URL}${cleanCnpj}`, { 
-            timeout: 15000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-        return response.data;
-    } catch (error: any) {
-        if (error.response) {
-            if (error.response.status === 404) {
-                throw new Error("CNPJ não encontrado.");
-            }
-            if (error.response.status === 429) {
-                throw new Error("Muitas consultas. Tente novamente em instantes.");
-            }
-        }
-        throw new Error(`Erro na consulta: ${error.message}`);
+      const url = buildUrl(clean);
+      const { data } = await axios.get(url, {
+        timeout: 12000,
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+          Accept: 'application/json',
+        },
+      });
+      return data;
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        throw new Error('CNPJ não encontrado na Receita Federal.');
+      }
+      if (err?.response?.status === 429) {
+        throw new Error('Limite de consultas atingido. Aguarde alguns segundos e tente novamente.');
+      }
+      lastError = new Error(`Falha na consulta: ${err?.message ?? 'erro desconhecido'}`);
     }
-}
+  }
 
-export function formatAddress(data: any): string {
-    const parts = [];
-    if (data.logradouro) {
-        let end = data.logradouro;
-        if (data.numero) end += `, ${data.numero}`;
-        parts.push(end);
-    }
-    if (data.bairro) parts.push(data.bairro);
-    if (data.municipio) parts.push(`${data.municipio} - ${data.uf}`);
-    return parts.join('\n') || "—";
+  throw lastError ?? new Error('Erro ao consultar CNPJ.');
 }

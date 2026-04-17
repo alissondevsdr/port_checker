@@ -1,57 +1,91 @@
-import React from 'react';
-import { LayoutDashboard, Users, FolderTree, FileText, Settings, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import { FolderTree, Users, Wrench, ChevronDown, ChevronRight } from 'lucide-react';
 
-interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'clients', label: 'Clientes', icon: Users },
+const NAV = [
+  { id: 'port-checker', label: 'Port Checker', icon: Wrench, sub: [
     { id: 'groups', label: 'Grupos', icon: FolderTree },
-    { id: 'reports', label: 'Relatórios', icon: FileText },
-  ];
+    { id: 'clients', label: 'Clientes', icon: Users },
+  ] },
+];
 
+interface Props { active: string; setActive: (id: string) => void; }
+
+const Sidebar: React.FC<Props> = ({ active, setActive }) => {
+  const [expanded, setExpanded] = useState<string | null>('port-checker');
   return (
-    <div className="w-64 h-screen bg-sidebar text-slate-500 flex flex-col fixed left-0 top-0 border-r border-border-dark">
-      <div className="p-8 flex items-center gap-3">
-        <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/40">
-           <Activity className="text-white w-6 h-6" />
-        </div>
-        <h1 className="text-xl font-black text-white tracking-tighter uppercase italic">Port<span className="text-blue-500">Checker</span></h1>
+    <aside className="w-56 h-screen flex flex-col fixed left-0 top-0 z-40" style={{ background: '#0e0e16', borderRight: '1px solid #25253a' }}>
+
+    {/* Logo */}
+    <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: '1px solid #1e1e2e' }}>
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#2563eb' }}>
+        <Wrench size={16} className="text-white" />
       </div>
-      
-      <nav className="flex-1 p-4 space-y-2 mt-4">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${
-                isActive 
-                ? 'bg-blue-600 text-white shadow-2xl shadow-blue-900/40' 
-                : 'hover:bg-white/[0.03] hover:text-slate-300'
-              }`}
-            >
-              <Icon size={22} className={`${isActive ? 'text-white' : 'text-slate-600 group-hover:text-blue-400'} transition-colors`} />
-              <span className="font-bold uppercase text-xs tracking-widest">{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-      
-      <div className="p-6 border-t border-border-dark">
-        <button className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-white/[0.03] transition-colors group">
-          <Settings size={22} className="text-slate-600 group-hover:text-blue-400" />
-          <span className="font-bold uppercase text-xs tracking-widest">Config</span>
-        </button>
+      <div>
+        <div className="text-white font-bold text-sm leading-none tracking-tight">
+          Ferramentas do Suporte
+        </div>
+        <div className="text-xs mt-0.5 font-mono" style={{ color: '#3a3a5a' }}>painel</div>
       </div>
     </div>
+
+    {/* Nav */}
+    <nav className="flex-1 p-3 flex flex-col gap-1 mt-2">
+      {NAV.map(({ id, label, icon: Icon, sub }) => {
+        const isExpanded = expanded === id;
+        const hasSub = sub && sub.length > 0;
+        return (
+          <div key={id}>
+            <button
+              onClick={() => {
+                if (hasSub) {
+                  setExpanded(isExpanded ? null : id);
+                } else {
+                  setActive(id);
+                }
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all"
+              style={{
+                background: active === id ? '#2563eb' : 'transparent',
+                color: active === id ? '#fff' : '#64748b',
+              }}
+              onMouseEnter={e => { if (active !== id) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.04)'; }}
+              onMouseLeave={e => { if (active !== id) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            >
+              <Icon size={16} style={{ color: active === id ? '#fff' : '#475569' }} />
+              <span className="text-xs font-semibold uppercase tracking-widest flex-1">{label}</span>
+              {hasSub && (
+                isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
+              )}
+            </button>
+            {hasSub && isExpanded && (
+              <div className="ml-6 mt-1 flex flex-col gap-1">
+                {sub.map(({ id: subId, label: subLabel, icon: SubIcon }) => {
+                  const subOn = active === subId;
+                  return (
+                    <button
+                      key={subId}
+                      onClick={() => setActive(subId)}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-all"
+                      style={{
+                        background: subOn ? '#2563eb' : 'transparent',
+                        color: subOn ? '#fff' : '#64748b',
+                      }}
+                      onMouseEnter={e => { if (!subOn) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.04)'; }}
+                      onMouseLeave={e => { if (!subOn) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      <SubIcon size={14} style={{ color: subOn ? '#fff' : '#475569' }} />
+                      <span className="text-xs font-semibold uppercase tracking-widest">{subLabel}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+
+  </aside>
   );
 };
 
