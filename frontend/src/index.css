@@ -1,33 +1,34 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-sidebar:    #0e0e16;
+  --color-sidebar:    #000000;
   --color-surface:    #141420;
   --color-surface-2:  #1a1a2a;
   --color-border:     #25253a;
-  --color-bg:         #0a0a12;
+  --color-bg:         #000000;
+  --color-primary:    #ed0c00;
 }
 
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
 
   html, body, #root {
-    background-color: #0a0a12;
-    color: #c8c8d8;
+    background-color: #000000;
+    color: #ffffff;
     min-height: 100vh;
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-family: 'Poppins', system-ui, sans-serif;
   }
 
-  ::selection { background: rgba(59,130,246,.25); color: #fff; }
+  ::selection { background: rgba(237,12,0,.25); color: #fff; }
 }
 
 .font-mono { font-family: 'IBM Plex Mono', monospace !important; }
 
 /* ── Cards ── */
 .card {
-  background: #141420;
-  border: 1px solid #25253a;
+  background: #111111;
+  border: 1px solid #333333;
   border-radius: 12px;
   box-shadow: 0 2px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.03);
 }
@@ -35,27 +36,40 @@
 /* ── Inputs ── */
 .field {
   width: 100%;
-  background: #0e0e16;
-  border: 1px solid #25253a;
+  background: #111111;
+  border: 1px solid #333333;
   border-radius: 8px;
   padding: 10px 14px;
-  color: #e0e0f0;
-  font-family: 'IBM Plex Sans', sans-serif;
+  color: #ffffff;
+  font-family: 'Poppins', sans-serif;
   font-size: 14px;
   outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
-.field::placeholder { color: #3a3a5a; }
+.field::placeholder { color: #aaaaaa; }
 .field:focus {
-  border-color: rgba(59,130,246,.5);
-  box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+  border-color: rgba(237,12,0,.5);
+  box-shadow: 0 0 0 3px rgba(237,12,0,.1);
+}
+
+select.field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23aaaaaa' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+}
+
+select.field option {
+  background: #222222;
+  color: #ffffff;
 }
 
 /* ── Status ── */
 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .dot-ok      { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.6); }
-.dot-error   { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,.6); }
-.dot-pending { background: #475569; }
+.dot-error   { background: #ed0c00; box-shadow: 0 0 6px rgba(237,12,0,.6); }
+.dot-pending { background: #aaaaaa; }
 
 .chip {
   display: inline-flex; align-items: center; gap: 5px;
@@ -64,29 +78,29 @@
   font-family: 'IBM Plex Mono', monospace;
 }
 .chip-ok      { background: rgba(34,197,94,.1);  color: #22c55e; border: 1px solid rgba(34,197,94,.2); }
-.chip-error   { background: rgba(239,68,68,.1);  color: #ef4444; border: 1px solid rgba(239,68,68,.2); }
-.chip-pending { background: rgba(71,85,105,.1);  color: #64748b; border: 1px solid rgba(71,85,105,.2); }
+.chip-error   { background: rgba(239,68,68,.1);  color: #ed0c00; border: 1px solid rgba(239,68,68,.2); }
+.chip-pending { background: rgba(71,85,105,.1);  color: #aaaaaa; border: 1px solid rgba(71,85,105,.2); }
 
 .chip-port-ok    { background: rgba(34,197,94,.08);  color: #4ade80; border: 1px solid rgba(34,197,94,.2);  font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 4px; }
-.chip-port-error { background: rgba(239,68,68,.08);  color: #f87171; border: 1px solid rgba(239,68,68,.2);  font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 4px; }
+.chip-port-error { background: rgba(239,68,68,.08);  color: #ed0c00; border: 1px solid rgba(239,68,68,.2);  font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 4px; }
 
 /* ── Buttons ── */
-.btn { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; border-radius: 7px; padding: 8px 16px; cursor: pointer; transition: all .15s; border: none; outline: none; font-family: 'IBM Plex Sans', sans-serif; }
+.btn { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; border-radius: 7px; padding: 8px 16px; cursor: pointer; transition: all .15s; border: none; outline: none; font-family: 'Poppins', sans-serif; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-primary { background: #2563eb; color: #fff; }
-.btn-primary:not(:disabled):hover { background: #1d4ed8; }
+.btn-primary { background: #ed0c00; color: #fff; }
+.btn-primary:not(:disabled):hover { background: #c00a00; }
 .btn-success { background: #16a34a; color: #fff; }
 .btn-success:not(:disabled):hover { background: #15803d; }
-.btn-ghost   { background: transparent; color: #94a3b8; border: 1px solid #25253a; }
-.btn-ghost:not(:disabled):hover   { background: rgba(255,255,255,.04); color: #e2e8f0; }
-.btn-danger  { background: rgba(239,68,68,.1); color: #ef4444; border: 1px solid rgba(239,68,68,.15); }
-.btn-danger:not(:disabled):hover  { background: #ef4444; color: #fff; }
+.btn-ghost   { background: transparent; color: #cccccc; border: 1px solid #333333; }
+.btn-ghost:not(:disabled):hover   { background: rgba(255,255,255,.04); color: #ffffff; }
+.btn-danger  { background: rgba(237,12,0,.1); color: #ed0c00; border: 1px solid rgba(237,12,0,.15); }
+.btn-danger:not(:disabled):hover  { background: #ed0c00; color: #fff; }
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #0a0a12; }
-::-webkit-scrollbar-thumb { background: #25253a; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #374151; }
+::-webkit-scrollbar-track { background: #000000; }
+::-webkit-scrollbar-thumb { background: #333333; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #555555; }
 
 /* ── Animations ── */
 @keyframes fadeUp {

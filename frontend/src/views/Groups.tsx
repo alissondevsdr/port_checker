@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, FolderTree, Trash2, Users, Zap, RefreshCw,
-  ChevronRight, ArrowLeft, Phone, Wifi, Globe,
-  XCircle, Clock, Edit2,
+  ChevronRight, ChevronUp, ChevronDown, ArrowLeft, Phone, Wifi, Globe,
+  XCircle, X, Clock, Edit2,
 } from 'lucide-react';
 import {
   getGroups, createGroup, deleteGroup,
@@ -43,19 +43,19 @@ const GroupCard = ({
   return (
     <div
       className="card p-5 cursor-pointer transition-all fade-up"
-      style={{ borderColor: err > 0 ? 'rgba(239,68,68,.25)' : '#25253a' }}
+      style={{ borderColor: err > 0 ? 'rgba(239,68,68,.25)' : '#333333' }}
       onClick={onSelect}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2563eb55'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = err > 0 ? 'rgba(239,68,68,.25)' : '#25253a'; }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#ed0c0055'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = err > 0 ? 'rgba(239,68,68,.25)' : '#333333'; }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#1e1e30', border: '1px solid #2563eb44' }}>
-            <FolderTree size={16} style={{ color: '#60a5fa' }} />
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#333333', border: '1px solid #ed0c0044' }}>
+            <FolderTree size={16} style={{ color: '#ed0c00' }} />
           </div>
           <div className="min-w-0">
             <h3 className="font-semibold text-sm text-white truncate">{group.name}</h3>
-            <p className="text-xs mt-0.5" style={{ color: '#475569' }}>
+            <p className="text-xs mt-0.5" style={{ color: '#aaaaaa' }}>
               {total} cliente{total !== 1 ? 's' : ''}
             </p>
           </div>
@@ -65,14 +65,14 @@ const GroupCard = ({
           <button
             onClick={e => { e.stopPropagation(); onDelete(); }}
             className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all"
-            style={{ color: '#475569' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#475569'; }}
+            style={{ color: '#aaaaaa' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#ed0c00'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#aaaaaa'; }}
             title="Excluir grupo"
           >
             <Trash2 size={13} />
           </button>
-          <ChevronRight size={16} style={{ color: '#475569' }} />
+          <ChevronRight size={16} style={{ color: '#aaaaaa' }} />
         </div>
       </div>
 
@@ -120,7 +120,7 @@ const ClientRow = ({
       <span
         key={i}
         className={portState === 'ok' ? 'chip-port-ok' : portState === 'error' ? 'chip-port-error' : 'font-mono text-xs px-2 py-0.5 rounded'}
-        style={portState === 'unknown' ? { background: 'rgba(71,85,105,.1)', color: '#64748b', border: '1px solid rgba(71,85,105,.15)' } : {}}
+        style={portState === 'unknown' ? { background: 'rgba(71,85,105,.1)', color: '#cccccc', border: '1px solid rgba(71,85,105,.15)' } : {}}
       >
         :{port}
         {portState === 'ok' && ' ✓'}
@@ -130,7 +130,7 @@ const ClientRow = ({
   });
 
   return (
-    <div className="fade-up" style={{ borderBottom: '1px solid #1a1a2a' }}>
+    <div className="fade-up" style={{ borderBottom: '1px solid #333333' }}>
       <div className="px-5 py-4 hover:bg-white/[0.015] transition-colors">
 
         {/* Top row: status + name + actions */}
@@ -142,7 +142,7 @@ const ClientRow = ({
                 <span className="font-semibold text-sm text-white">{client.name}</span>
                 <span className={statusChip(client.status)}>{client.status}</span>
                 {client.cnpj && (
-                  <span className="font-mono text-xs" style={{ color: '#475569' }}>
+                  <span className="font-mono text-xs" style={{ color: '#aaaaaa' }}>
                     {client.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}
                   </span>
                 )}
@@ -150,17 +150,17 @@ const ClientRow = ({
 
               {/* Host + ports */}
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <span className="flex items-center gap-1 font-mono text-xs" style={{ color: '#6b7280' }}>
+                <span className="flex items-center gap-1 font-mono text-xs" style={{ color: '#cccccc' }}>
                   <Globe size={11} /> {client.host}
                 </span>
                 {portChips.length > 0 && (
-                  <span className="text-xs" style={{ color: '#374151' }}>|</span>
+                  <span className="text-xs" style={{ color: '#888888' }}>|</span>
                 )}
                 <div className="flex gap-1 flex-wrap">{portChips}</div>
               </div>
 
               {/* Meta row */}
-              <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs" style={{ color: '#475569' }}>
+              <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs" style={{ color: '#aaaaaa' }}>
                 {client.provedor_internet && (
                   <span className="flex items-center gap-1">
                     <Wifi size={10} /> {client.provedor_internet}
@@ -173,9 +173,9 @@ const ClientRow = ({
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
                     className="flex items-center gap-1 transition-colors"
-                    style={{ color: '#475569' }}
+                    style={{ color: '#aaaaaa' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#22c55e'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#475569'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#aaaaaa'; }}
                     title="Abrir no WhatsApp"
                   >
                     <Phone size={10} />
@@ -189,7 +189,7 @@ const ClientRow = ({
                   </span>
                 )}
                 {client.avg_response_ms && (
-                  <span className="font-mono" style={{ color: '#3b82f6' }}>
+                  <span className="font-mono" style={{ color: '#ed0c00' }}>
                     {Math.round(client.avg_response_ms)}ms
                   </span>
                 )}
@@ -246,6 +246,9 @@ const GroupDetail = ({
   const [loading, setLoading]     = useState(true);
   const [testing, setTesting]     = useState(false);
   const [testingId, setTestingId] = useState<number | null>(null);
+  const [sortKey, setSortKey]     = useState<'name' | 'status' | 'last_test'>('name');
+  const [sortAsc, setSortAsc]     = useState(true);
+  const [showCritical, setShowCritical] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -316,37 +319,87 @@ const GroupDetail = ({
 
       {/* Alert for critical clients */}
       {critical.length > 0 && (
-        <div className="mb-5 px-4 py-3 rounded-lg fade-up" style={{ background: 'rgba(239,68,68,.07)', border: '1px solid rgba(239,68,68,.2)' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <XCircle size={14} style={{ color: '#ef4444' }} />
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#f87171' }}>
-              {critical.length} cliente{critical.length > 1 ? 's' : ''} com portas fechadas — requer contato
+        <div className="mb-5 rounded-lg fade-up" style={{ background: 'rgba(239,68,68,.07)', border: '1px solid rgba(239,68,68,.2)' }}>
+          <button
+            type="button"
+            onClick={() => setShowCritical(true)}
+            className="w-full text-left px-4 py-4 flex items-center justify-between gap-3"
+            style={{ color: '#f87171' }}
+          >
+            <span className="flex items-center gap-2">
+              <XCircle size={14} style={{ color: '#ef4444' }} />
+              <span className="text-xs font-bold uppercase tracking-widest">
+                {critical.length} cliente{critical.length > 1 ? 's' : ''} com portas fechadas — requer contato
+              </span>
             </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {critical.map(c => (
-              <div key={c.id} className="flex items-center gap-2">
-                <span className="text-xs font-semibold" style={{ color: '#fca5a5' }}>{c.name}</span>
-                {c.phone && (
-                  <a
-                    href={`https://wa.me/55${c.phone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs px-2 py-0.5 rounded transition-all"
-                    style={{ background: 'rgba(34,197,94,.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,.2)' }}
-                    title="Abrir WhatsApp"
-                  >
-                    <Phone size={10} /> {c.phone}
-                  </a>
-                )}
-                {c.provedor_internet && (
-                  <span className="text-xs" style={{ color: '#6b7280' }}>{c.provedor_internet}</span>
-                )}
+            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#ed0c00' }}>
+              Ver clientes
+            </span>
+          </button>
+        </div>
+      )}
+
+      {showCritical && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 p-4 backdrop-blur-sm">
+          <div className="relative mx-auto w-full max-w-3xl max-h-[calc(100vh-4rem)] rounded-2xl border border-[#333333] bg-[#111111] shadow-2xl overflow-hidden">
+            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-[#333333]">
+              <div>
+                <h3 className="text-lg font-bold text-white">Clientes com erro</h3>
+                <p className="text-xs mt-1" style={{ color: '#aaaaaa' }}>
+                  {critical.length} cliente{critical.length > 1 ? 's' : ''} com portas fechadas no grupo {group.name}
+                </p>
               </div>
-            ))}
+              <button type="button" onClick={() => setShowCritical(false)} className="btn btn-ghost">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="max-h-[calc(100vh-8rem)] overflow-y-auto p-6 space-y-3">
+              {critical.map(c => (
+                <div key={c.id} className="rounded-xl border border-[#333333] bg-[#121212] p-4 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-white">{c.name}</span>
+                    {c.status === 'ERROR' && (
+                      <span className="text-xs uppercase tracking-widest" style={{ color: '#ed0c00' }}>Erro</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs" style={{ color: '#aaaaaa' }}>
+                    {c.phone && <span>📞 {c.phone}</span>}
+                    {c.provedor_internet && <span>🌐 {c.provedor_internet}</span>}
+                    {c.host && <span>🖧 {c.host}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
+
+      {/* Sort bar */}
+      <div
+        className="px-5 py-2 flex items-center gap-6 text-xs font-semibold uppercase tracking-widest select-none"
+        style={{ background: 'rgba(0,0,0,.2)', borderBottom: '1px solid #333333', color: '#aaaaaa' }}
+      >
+        {([
+          ['name', 'Cliente'],
+          ['status', 'Status'],
+          ['last_test', 'Último Teste'],
+        ] as ['name' | 'status' | 'last_test', string][]).map(([k, label]) => (
+          <button
+            key={k}
+            className="flex items-center gap-1 cursor-pointer transition-colors"
+            style={{ color: sortKey === k ? '#ffffff' : '#aaaaaa' }}
+            onClick={() => {
+              setSortKey(k);
+              setSortAsc(sortKey === k ? !sortAsc : true);
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#ffffff'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = sortKey === k ? '#ffffff' : '#aaaaaa'; }}
+          >
+            {label}
+            {sortKey === k && (sortAsc ? <ChevronUp size={11} style={{ color: '#ed0c00' }} /> : <ChevronDown size={11} style={{ color: '#ed0c00' }} />)}
+          </button>
+        ))}
+      </div>
 
       {/* Client list */}
       <div className="card overflow-hidden">
@@ -372,16 +425,27 @@ const GroupDetail = ({
             </p>
           </div>
         ) : (
-          clients.map(c => (
-            <ClientRow
-              key={c.id}
-              client={c}
-              testing={testingId === c.id}
-              onTest={() => handleTestOne(c.id)}
-              onEdit={() => onEdit(c)}
-              onDelete={() => handleDelete(c.id)}
-            />
-          ))
+          (() => {
+            const sortedClients = [...clients].sort((a, b) => {
+              let va = a[sortKey], vb = b[sortKey];
+              if (sortKey === 'last_test') {
+                va = va ? new Date(va).getTime() : 0;
+                vb = vb ? new Date(vb).getTime() : 0;
+              } else if (typeof va === 'string') va = va.toLowerCase();
+              if (typeof vb === 'string') vb = vb.toLowerCase();
+              return sortAsc ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0);
+            });
+            return sortedClients.map(c => (
+              <ClientRow
+                key={c.id}
+                client={c}
+                testing={testingId === c.id}
+                onTest={() => handleTestOne(c.id)}
+                onEdit={() => onEdit(c)}
+                onDelete={() => handleDelete(c.id)}
+              />
+            ));
+          })()
         )}
       </div>
     </div>
@@ -398,6 +462,7 @@ const Groups: React.FC = () => {
   const [selected, setSelected]     = useState<any>(null);
   const [editClient, setEditClient] = useState<any>(null);
   const [showForm, setShowForm]     = useState(false);
+  const [search, setSearch]         = useState('');
 
   const loadGroups = useCallback(async (refreshSelected = true) => {
     try {
@@ -488,6 +553,22 @@ const Groups: React.FC = () => {
         </div>
       )}
 
+      {/* Filters */}
+      <div className="card p-4 mb-5 fade-up">
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              className="field !pl-9 text-sm"
+              placeholder="Buscar por nome do grupo..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <FolderTree size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#aaaaaa' }} />
+          </div>
+        </div>
+      </div>
+
       {/* Groups grid */}
       {loading ? (
         <div className="grid grid-cols-2 gap-4">
@@ -511,14 +592,16 @@ const Groups: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 group">
-          {groups.map(g => (
-            <GroupCard
-              key={g.id}
-              group={g}
-              onSelect={() => setSelected(g)}
-              onDelete={() => handleDelete(g.id)}
-            />
-          ))}
+          {groups
+            .filter(g => g.name.toLowerCase().includes(search.toLowerCase()))
+            .map(g => (
+              <GroupCard
+                key={g.id}
+                group={g}
+                onSelect={() => setSelected(g)}
+                onDelete={() => handleDelete(g.id)}
+              />
+            ))}
         </div>
       )}
     </div>

@@ -43,7 +43,7 @@ const ClientCard = ({
     <div
       className="px-5 py-4 transition-colors"
       style={{
-        borderBottom: '1px solid #1a1a2a',
+        borderBottom: '1px solid #333333',
         background: client.status === 'ERROR' ? 'rgba(239,68,68,.02)' : 'transparent',
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.015)'; }}
@@ -63,13 +63,13 @@ const ClientCard = ({
             {client.group_name && (
               <span
                 className="text-xs px-2 py-0.5 rounded font-semibold"
-                style={{ background: 'rgba(59,130,246,.1)', color: '#60a5fa', border: '1px solid rgba(59,130,246,.15)' }}
+                style={{ background: 'rgba(237,12,0,.1)', color: '#ed0c00', border: '1px solid rgba(237,12,0,.15)' }}
               >
                 {client.group_name}
               </span>
             )}
             {client.cnpj && (
-              <span className="font-mono text-xs" style={{ color: '#475569' }}>
+              <span className="font-mono text-xs" style={{ color: '#aaaaaa' }}>
                 {client.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}
               </span>
             )}
@@ -77,16 +77,16 @@ const ClientCard = ({
 
           {/* Row 2: host + ports */}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span className="flex items-center gap-1 font-mono text-xs" style={{ color: '#6b7280' }}>
-              <Globe size={11} style={{ color: '#3b82f6' }} />
+            <span className="flex items-center gap-1 font-mono text-xs" style={{ color: '#cccccc' }}>
+              <Globe size={11} style={{ color: '#ed0c00' }} />
               {client.host}
             </span>
             {(client.ports || []).length > 0 && (
               <>
-                <span className="text-xs" style={{ color: '#374151' }}>|</span>
+                <span className="text-xs" style={{ color: '#888888' }}>|</span>
                 <div className="flex gap-1 flex-wrap">
                   {(client.ports || []).map((p: number) => (
-                    <span key={p} className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: '#1a1a2a', color: '#6b7280', border: '1px solid #252535' }}>
+                    <span key={p} className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: '#333333', color: '#cccccc', border: '1px solid #555555' }}>
                       :{p}
                     </span>
                   ))}
@@ -96,7 +96,7 @@ const ClientCard = ({
           </div>
 
           {/* Row 3: contact + timing */}
-          <div className="flex items-center gap-4 mt-1.5 flex-wrap text-xs" style={{ color: '#475569' }}>
+          <div className="flex items-center gap-4 mt-1.5 flex-wrap text-xs" style={{ color: '#aaaaaa' }}>
             {client.provedor_internet && (
               <span className="flex items-center gap-1">
                 <Wifi size={10} /> {client.provedor_internet}
@@ -108,9 +108,9 @@ const ClientCard = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 transition-colors"
-                style={{ color: '#475569' }}
+                style={{ color: '#aaaaaa' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#22c55e'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#475569'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#aaaaaa'; }}
                 title="Abrir no WhatsApp"
               >
                 <Phone size={10} /> {client.phone}
@@ -125,10 +125,10 @@ const ClientCard = ({
                 {new Date(client.last_test).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
               </span>
             ) : (
-              <span style={{ color: '#334155', fontStyle: 'italic' }}>Nunca testado</span>
+              <span style={{ color: '#888888', fontStyle: 'italic' }}>Nunca testado</span>
             )}
             {client.avg_response_ms && (
-              <span className="font-mono" style={{ color: '#3b82f6' }}>
+              <span className="font-mono" style={{ color: '#ed0c00' }}>
                 {Math.round(client.avg_response_ms)}ms
               </span>
             )}
@@ -139,9 +139,9 @@ const ClientCard = ({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {confirmDel ? (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)' }}>
-              <span style={{ color: '#f87171' }}>Excluir?</span>
-              <button onClick={onDelete} className="font-bold underline" style={{ color: '#f87171' }}>Sim</button>
-              <button onClick={() => setConfirmDel(false)} style={{ color: '#64748b' }}>Não</button>
+              <span style={{ color: '#ed0c00' }}>Excluir?</span>
+              <button onClick={onDelete} className="font-bold underline" style={{ color: '#ed0c00' }}>Sim</button>
+              <button onClick={() => setConfirmDel(false)} style={{ color: '#cccccc' }}>Não</button>
             </div>
           ) : (
             <>
@@ -228,8 +228,8 @@ const Clients: React.FC = () => {
 
   const SIcon = ({ k }: { k: Sort }) => (
     sortKey === k
-      ? (sortAsc ? <ChevronUp size={11} style={{ color: '#60a5fa' }} /> : <ChevronDown size={11} style={{ color: '#60a5fa' }} />)
-      : <ChevronDown size={11} style={{ color: '#334155' }} />
+      ? (sortAsc ? <ChevronUp size={11} style={{ color: '#ed0c00' }} /> : <ChevronDown size={11} style={{ color: '#ed0c00' }} />)
+      : <ChevronDown size={11} style={{ color: '#888888' }} />
   );
 
   const ok  = clients.filter(c => c.status === 'OK').length;
@@ -271,7 +271,7 @@ const Clients: React.FC = () => {
           <div className="relative flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#475569' }} />
             <input
-              className="field pl-9 text-sm"
+              className="field !pl-9 text-sm"
               placeholder="Buscar por nome, host, CNPJ ou telefone..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -304,7 +304,7 @@ const Clients: React.FC = () => {
         {/* Sort bar */}
         <div
           className="px-5 py-2 flex items-center gap-6 text-xs font-semibold uppercase tracking-widest select-none"
-          style={{ background: 'rgba(0,0,0,.2)', borderBottom: '1px solid #1a1a2a', color: '#475569' }}
+          style={{ background: 'rgba(0,0,0,.2)', borderBottom: '1px solid #333333', color: '#aaaaaa' }}
         >
           {([
             ['name', 'Cliente'],

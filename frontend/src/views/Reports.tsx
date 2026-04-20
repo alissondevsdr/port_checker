@@ -105,7 +105,7 @@ const Reports: React.FC = () => {
             <input
               type="text"
               placeholder="Buscar por cliente..."
-              className="dark-input pl-9 py-2.5 text-sm"
+              className="field !pl-9 text-sm"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />

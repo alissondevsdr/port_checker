@@ -70,16 +70,16 @@ const Field = memo(
     <div className="flex flex-col gap-1.5">
       <label
         className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest"
-        style={{ color: '#64748b' }}
+        style={{ color: '#cccccc' }}
       >
-        {Icon && <Icon size={11} style={{ color: '#60a5fa' }} />}
+        {Icon && <Icon size={11} style={{ color: '#ed0c00' }} />}
         {label}
       </label>
 
       {children}
 
       {hint && (
-        <span className="text-xs" style={{ color: '#475569' }}>
+        <span className="text-xs" style={{ color: '#aaaaaa' }}>
           {hint}
         </span>
       )}
@@ -255,7 +255,7 @@ const ClientModal: React.FC<Props> = ({
         <div
           className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
           style={{
-            background: '#141420',
+            background: '#000000',
             borderBottom:
               '1px solid rgba(255,255,255,.06)',
           }}
@@ -269,7 +269,7 @@ const ClientModal: React.FC<Props> = ({
 
             <p
               className="text-xs mt-1"
-              style={{ color: '#64748b' }}
+              style={{ color: '#cccccc' }}
             >
               Cadastro de monitoramento
             </p>
@@ -296,7 +296,7 @@ const ClientModal: React.FC<Props> = ({
                   'rgba(239,68,68,.08)',
                 border:
                   '1px solid rgba(239,68,68,.18)',
-                color: '#f87171',
+                color: '#ed0c00',
               }}
             >
               <AlertCircle size={16} />
@@ -343,7 +343,7 @@ const ClientModal: React.FC<Props> = ({
                 <span
                   className="text-xs"
                   style={{
-                    color: '#f87171',
+                    color: '#ed0c00',
                   }}
                 >
                   {cnpjError}

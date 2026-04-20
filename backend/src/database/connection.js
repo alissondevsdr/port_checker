@@ -1,31 +1,27 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
-
 dotenv.config();
-
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_DATABASE || 'tools_db',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_DATABASE || 'tools_db',
+    port: parseInt(process.env.DB_PORT || '3306'),
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
 });
-
 export async function initializeSchema() {
-  const connection = await pool.getConnection();
-  try {
-    await connection.query(`
+    const connection = await pool.getConnection();
+    try {
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS \`groups\` (
         id         INT AUTO_INCREMENT PRIMARY KEY,
         name       VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-
-    await connection.query(`
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS clients (
         id                INT AUTO_INCREMENT PRIMARY KEY,
         name              VARCHAR(255) NOT NULL,
@@ -43,15 +39,14 @@ export async function initializeSchema() {
         FOREIGN KEY (group_id) REFERENCES \`groups\`(id) ON DELETE SET NULL
       )
     `);
-
-    // Add phone column if it doesn't exist (migration for existing tables)
-    try {
-      await connection.query(`ALTER TABLE clients ADD COLUMN phone VARCHAR(30) DEFAULT '' AFTER cnpj`);
-    } catch {
-      // Column already exists, ignore
-    }
-
-    await connection.query(`
+        // Add phone column if it doesn't exist (migration for existing tables)
+        try {
+            await connection.query(`ALTER TABLE clients ADD COLUMN phone VARCHAR(30) DEFAULT '' AFTER cnpj`);
+        }
+        catch {
+            // Column already exists, ignore
+        }
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS test_logs (
         id          INT AUTO_INCREMENT PRIMARY KEY,
         client_id   INT NOT NULL,
@@ -63,8 +58,7 @@ export async function initializeSchema() {
         FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
       )
     `);
-
-    await connection.query(`
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS port_results (
         id          INT AUTO_INCREMENT PRIMARY KEY,
         log_id      INT NOT NULL,
@@ -75,8 +69,7 @@ export async function initializeSchema() {
         FOREIGN KEY (log_id) REFERENCES test_logs(id) ON DELETE CASCADE
       )
     `);
-
-    await connection.query(`
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS remote_connections (
         id                INT AUTO_INCREMENT PRIMARY KEY,
         company_name      VARCHAR(255) NOT NULL,
@@ -86,9 +79,10 @@ export async function initializeSchema() {
         updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
-  } finally {
-    connection.release();
-  }
+    }
+    finally {
+        connection.release();
+    }
 }
-
 export default pool;
+//# sourceMappingURL=connection.js.map

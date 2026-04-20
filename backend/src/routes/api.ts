@@ -2,6 +2,7 @@ import { Router } from 'express';
 import pool from '../database/connection.js';
 import { checkPort } from '../services/networkService.js';
 import { fetchCNPJ } from '../services/cnpjService.js';
+import ExcelProcessor from '../services/excelCleaner.js';
 import type { PortResult } from '../models/types.js';
 
 const router = Router();
@@ -241,6 +242,121 @@ router.get('/cnpj/:cnpj', async (req, res) => {
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// ─── REMOTE CONNECTIONS ──────────────────────────────────────────────────────
+
+router.get('/remote-connections', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT * FROM remote_connections
+      ORDER BY company_name ASC
+    `);
+    res.json(rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/remote-connections', async (req, res) => {
+  try {
+    const { company_name, connection_string, connection_type } = req.body;
+    if (!company_name?.trim() || !connection_string?.trim() || !connection_type?.trim()) {
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+    }
+
+    const [result]: any = await pool.query(
+      `INSERT INTO remote_connections (company_name, connection_string, connection_type)
+       VALUES (?, ?, ?)`,
+      [company_name.trim(), connection_string.trim(), connection_type.trim()]
+    );
+    res.json({ id: result.insertId, company_name, connection_string, connection_type });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/remote-connections/:id', async (req, res) => {
+  try {
+    const { company_name, connection_string, connection_type } = req.body;
+    if (!company_name?.trim() || !connection_string?.trim() || !connection_type?.trim()) {
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+    }
+
+    await pool.query(
+      `UPDATE remote_connections
+       SET company_name=?, connection_string=?, connection_type=?
+       WHERE id=?`,
+      [company_name.trim(), connection_string.trim(), connection_type.trim(), req.params.id]
+    );
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/remote-connections/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM remote_connections WHERE id=?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── EXCEL PROCESSOR ──────────────────────────────────────────────────────────
+
+// Rota para processar arquivo Excel desorganizado
+router.post('/excel/process', async (req, res) => {
+  try {
+    if (!req.body || !req.body.file) {
+      return res.status(400).json({ error: 'Nenhum arquivo fornecido' });
+    }
+
+    // Converter buffer base64 para Buffer
+    const buffer = Buffer.from(req.body.file, 'base64');
+    const mode = req.body.mode || 'simples';
+
+    // Processar arquivo
+    const result = await ExcelProcessor.processSpreadsheet(buffer, mode);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    // Retornar arquivo processado como base64
+    res.json({
+      success: true,
+      message: result.message,
+      totalRows: result.totalRows,
+      processedRows: result.processedRows,
+      invalidRows: result.invalidRows,
+      file: result.buffer?.toString('base64'),
+    });
+  } catch (error: any) {
+    console.error('Erro ao processar Excel:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro ao processar arquivo: ${error.message}`,
+      totalRows: 0,
+      processedRows: 0,
+      invalidRows: 0,
+    });
+  }
+});
+
+// Rota para download do template padrão
+router.get('/excel/template', async (req, res) => {
+  try {
+    const mode = (req.query.mode as string) || 'simples';
+    const buffer = await ExcelProcessor.generateTemplateExcel(mode as 'simples' | 'normal');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="template_padrao.xlsx"');
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('Erro ao gerar template:', error);
+    res.status(500).json({ error: 'Erro ao gerar template' });
   }
 });
 

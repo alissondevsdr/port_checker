@@ -36,4 +36,39 @@ export const getStats = () => api.get('/stats');
 export const getLogs = (params?: { limit?: number; client_id?: number }) =>
   api.get('/logs', { params });
 
+// Remote Connections
+export const getRemoteConnections = () => api.get('/remote-connections');
+export const createRemoteConnection = (data: any) => api.post('/remote-connections', data);
+export const updateRemoteConnection = (id: number, data: any) => api.put(`/remote-connections/${id}`, data);
+export const deleteRemoteConnection = (id: number) => api.delete(`/remote-connections/${id}`);
+
+// Excel Processor
+export const processExcelFile = (fileBuffer: Uint8Array | ArrayBuffer, mode: 'simples' | 'normal' = 'simples') => {
+  // Converter Uint8Array para base64 sem usar apply (evita stack overflow em arquivos grandes)
+  const bytes = fileBuffer instanceof ArrayBuffer ? new Uint8Array(fileBuffer) : fileBuffer;
+  
+  let base64String = '';
+  const chunkSize = 8192; // Processar em chunks para evitar stack overflow
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    base64String += String.fromCharCode.apply(null, Array.from(chunk) as any);
+  }
+  
+  base64String = btoa(base64String);
+  
+  return api.post('/excel/process', {
+    file: base64String,
+    mode,
+  });
+};
+
+export const downloadTemplateExcel = async (mode: 'simples' | 'normal' = 'simples') => {
+  const response = await api.get('/excel/template', {
+    params: { mode },
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
 export default api;
