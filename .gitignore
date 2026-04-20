@@ -4,34 +4,26 @@ frontend/node_modules
 run.bat
 /node_modules
 /dist
-
-
 # Dependências
 node_modules/
 package-lock.json
-
 # Build e dist
 backend/dist/
 frontend/dist/
-
 # Arquivos sensíveis
 .env
 .env.local
 *.sql
-
 # Logs
 logs/
 *.log
-
 # IDE
 .vscode/
 .idea/
 *.swp
-
 # OS
 .DS_Store
 Thumbs.db
-
 *.md
 *.txt
 *.bat

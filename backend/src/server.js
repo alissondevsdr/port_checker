@@ -7,7 +7,11 @@ dotenv.config();
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: [
+        'http://localhost:5173',
+        'http://192.168.1.188:5173', // seu IP
+        /^http:\/\/192\.168\.1\.\d+:5173$/, // qualquer IP da rede
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
