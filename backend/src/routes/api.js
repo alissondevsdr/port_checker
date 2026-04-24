@@ -3,8 +3,50 @@ import pool from '../database/connection.js';
 import { checkPort } from '../services/networkService.js';
 import { fetchCNPJ } from '../services/cnpjService.js';
 import ExcelProcessor from '../services/excelCleaner.js';
+import path from 'node:path';
+import { readdir, stat } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 const router = Router();
+const routeDir = path.dirname(fileURLToPath(import.meta.url));
+const downloadsDir = path.resolve(routeDir, '../../../downloads');
+const toReadableSize = (sizeBytes) => {
+    if (sizeBytes < 1024)
+        return `${sizeBytes} B`;
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = sizeBytes / 1024;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+    }
+    return `${value.toFixed(value >= 10 ? 1 : 2)} ${units[unitIndex]}`;
+};
 // ─── GROUPS ──────────────────────────────────────────────────────────────────
+router.get('/downloads', async (_req, res) => {
+    try {
+        const entries = await readdir(downloadsDir, { withFileTypes: true });
+        const files = await Promise.all(entries
+            .filter((entry) => entry.isFile())
+            .map(async (entry) => {
+            const fullPath = path.join(downloadsDir, entry.name);
+            const stats = await stat(fullPath);
+            return {
+                name: entry.name.replace(/\.[^.]+$/, ''),
+                filename: entry.name,
+                size: toReadableSize(stats.size),
+                sizeBytes: stats.size,
+                modifiedAt: stats.mtime.toISOString(),
+            };
+        }));
+        files.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+        return res.json(files);
+    }
+    catch (error) {
+        if (error?.code === 'ENOENT')
+            return res.json([]);
+        return res.status(500).json({ error: 'Falha ao listar arquivos de download' });
+    }
+});
 router.get('/groups', async (req, res) => {
     try {
         const [rows] = await pool.query(`
@@ -118,11 +160,15 @@ router.delete('/clients/:id', async (req, res) => {
 });
 // ─── TEST ENGINE ─────────────────────────────────────────────────────────────
 async function performTest(client) {
+    const toLocalSqlDateTime = (date) => {
+        const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 19).replace('T', ' ');
+    };
     const ports = (typeof client.ports === 'string' ? client.ports.split(',') : client.ports)
         .map(Number)
         .filter(Boolean);
     if (!ports.length) {
-        return { status: 'ERROR', results: [], last_test: new Date().toISOString() };
+        return { status: 'ERROR', results: [], last_test: toLocalSqlDateTime(new Date()) };
     }
     const results = await Promise.all(ports.map((port) => checkPort(client.host, port)));
     const openPorts = results.filter(r => r.open);
@@ -132,7 +178,7 @@ async function performTest(client) {
     let status = 'ERROR';
     if (openPorts.length === results.length)
         status = 'OK';
-    const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const timestamp = toLocalSqlDateTime(new Date());
     await pool.query('UPDATE clients SET status=?, last_test=?, avg_response_ms=? WHERE id=?', [status, timestamp, avgResponse, client.id]);
     const [logResult] = await pool.query(`INSERT INTO test_logs (client_id, client_name, timestamp, status, duration_ms, details)
      VALUES (?, ?, ?, ?, ?, ?)`, [client.id, client.name, timestamp, status, avgResponse || 0, JSON.stringify(results)]);

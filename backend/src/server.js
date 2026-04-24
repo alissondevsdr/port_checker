@@ -1,11 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { initializeSchema } from './database/connection.js';
 import apiRoutes from './routes/api.js';
 dotenv.config();
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
+const serverDir = path.dirname(fileURLToPath(import.meta.url));
+const downloadsDir = path.resolve(serverDir, '../../downloads');
 app.use(cors({
     origin: [
         'http://localhost:5173',
@@ -27,6 +31,7 @@ initializeSchema()
     .then(() => {
     console.log('✅ Database schema initialized');
     app.use('/api', apiRoutes);
+    app.use('/downloads', express.static(downloadsDir));
     // Global error handler
     app.use((err, req, res, next) => {
         console.error('❌ Unhandled error:', err);

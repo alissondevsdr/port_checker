@@ -1,4 +1,4 @@
-# 🛠️ Ferramentas de Suporte — Inovar
+# 🛠️ Suporte HUB — Inovar
 
 > **Plataforma web interna para equipes de suporte técnico** — monitoramento de portas, gestão de clientes, conexões remotas e tratamento de planilhas fiscais. Novas funcionalidades estão continuamente sendo desenvolvidas e serão lançadas em breve.
 
@@ -25,7 +25,7 @@
 
 ## 🔍 Visão Geral
 
-**Ferramentas de Suporte** é uma aplicação web full-stack desenvolvida para centralizar e facilitar o trabalho diário de equipes de suporte técnico. A plataforma permite monitorar a disponibilidade de portas TCP em hosts de clientes, gerenciar informações de acesso remoto e padronizar planilhas fiscais de produtos — tudo em uma interface moderna, rápida e acessível na rede local.
+**Suporte HUB** é uma aplicação web full-stack desenvolvida para centralizar e facilitar o trabalho diário de equipes de suporte técnico. A plataforma permite monitorar a disponibilidade de portas TCP em hosts de clientes, gerenciar informações de acesso remoto e padronizar planilhas fiscais de produtos — tudo em uma interface moderna, rápida e acessível na rede local.
 
 A aplicação é composta por um **backend Node.js/Express** com banco de dados **MySQL** e um **frontend React** com **Tailwind CSS**, ambos comunicando-se via API REST.
 
@@ -526,7 +526,7 @@ Retorna: `{ razao_social, nome_fantasia, logradouro, numero, municipio, uf, bair
 
 <div align="center">
 
-**Ferramentas de Suporte** · Desenvolvido para otimizar o trabalho da equipe técnica
+**Suporte HUB** · Desenvolvido para otimizar o trabalho da equipe técnica
 
 🚀 *Novas funcionalidades chegando em breve!*
 

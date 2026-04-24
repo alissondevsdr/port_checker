@@ -1,15 +1,24 @@
 import React, { useState } from "react";
 import {
+  Home,
   FolderTree,
   Users,
   Wrench,
   ChevronDown,
   ChevronRight,
   Monitor,
-  FileText
+  FileText,
+  FileBarChart2,
+  Download,
 } from "lucide-react";
 
 const NAV = [
+  {
+    id: "home",
+    label: "Início",
+    icon: Home,
+    sub: [],
+  },
   {
     id: "port-checker",
     label: "Port Checker",
@@ -31,6 +40,18 @@ const NAV = [
     icon: FileText,
     sub: [],
   },
+  {
+    id: "manual-reports",
+    label: "Rel. Manuais",
+    icon: FileBarChart2,
+    sub: [],
+  },
+  {
+    id: "downloads",
+    label: "Downloads",
+    icon: Download,
+    sub: [],
+  },
 ];
 
 interface Props {
@@ -47,7 +68,8 @@ const Sidebar: React.FC<Props> = ({ active, setActive }) => {
     >
       {/* Logo */}
       <div
-        className="px-5 py-5 flex items-center gap-3"
+        onClick={() => setActive("home")}
+        className="px-5 py-5 flex items-center gap-3 cursor-pointer"
         style={{ borderBottom: "1px solid #333333" }}
       >
         <div
@@ -58,7 +80,7 @@ const Sidebar: React.FC<Props> = ({ active, setActive }) => {
         </div>
         <div>
           <div className="text-white font-bold text-lg leading-none tracking-tight">
-            Ferramentas do Suporte
+            Suporte HUB
           </div>
         </div>
       </div>

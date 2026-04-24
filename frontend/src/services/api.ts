@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`,
+  baseURL: API_BASE_URL,
   timeout: 30000,
 });
 
@@ -75,5 +78,28 @@ export const downloadTemplateExcel = async (mode: 'simples' | 'normal' = 'simple
   });
   return response.data;
 };
+
+// Manual Reports
+export const getRequesterIp = () => api.get('/reports/client-ip');
+export const generateFrigoReport = (params: { month: number; year: number; host: string }) =>
+  api.post('/reports/frigo', params);
+export const generatePadariaSTReport = (params: { emitente: 'BRUNETTO' | 'A_C_COSTA'; month: number; year: number; host: string }) =>
+  api.post('/reports/padaria/st', params);
+export const generatePadariaMonofasicoReport = (params: { emitente: 'BRUNETTO' | 'A_C_COSTA'; month: number; year: number; host: string }) =>
+  api.post('/reports/padaria/monofasico', params);
+
+// Downloads
+export interface DownloadFile {
+  name: string;
+  filename: string;
+  size: string;
+  sizeBytes: number;
+  modifiedAt: string;
+}
+
+export const getDownloads = () => api.get<DownloadFile[]>('/downloads');
+export const getDownloadUrl = (filename: string) =>
+  `${API_BASE_URL.replace(/\/api\/?$/, '')}/downloads/${encodeURIComponent(filename)}`;
+
 
 export default api;

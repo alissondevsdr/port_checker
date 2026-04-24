@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, RefreshCw, Edit2, Trash2,
-  Play, Globe, Zap,
-  Phone, Wifi, Clock, ChevronDown, ChevronUp,
+  Play, Zap, Clock, ChevronDown, ChevronUp,
   AlertCircle,
 } from 'lucide-react';
-import { getClients, testClient, deleteClient, getGroups, testAllClients } from '../services/api';
+import { getClients, testClient, deleteClient, getGroups } from '../services/api';
 import ClientModal from '../components/ClientModal';
 
 const statusDot = (s: string) => {
@@ -21,6 +20,59 @@ const statusChip = (s: string) => {
 };
 
 type Sort = 'name' | 'status' | 'last_test' | 'avg_response_ms';
+
+type BatchProgress = {
+  total: number;
+  completed: number;
+  currentName: string;
+  finished: boolean;
+  etaSeconds: number;
+} | null;
+
+const STATUS_RANK: Record<string, number> = {
+  OK: 0,
+  ERROR: 1,
+  PENDING: 2,
+};
+
+const normalizeTestResult = (result: any) => ({
+  status: result.status || 'PENDING',
+  last_test: result.last_test || null,
+  avg_response_ms: result.avg_response_ms ?? null,
+  _portResults: (result.results || []).map((r: any) => ({
+    port: r.port,
+    is_open: Boolean(r.open),
+    response_ms: r.response_time ?? null,
+    error: r.error ?? null,
+  })),
+});
+
+const BatchProgressBar = ({ progress }: { progress: BatchProgress }) => {
+  if (!progress) return null;
+  const percent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+  return (
+    <div className="card p-4 mb-4 fade-up" style={{ borderColor: progress.finished ? 'rgba(34,197,94,.25)' : '#333333' }}>
+      <div className="flex items-center justify-between gap-3 text-xs" style={{ color: '#94a3b8' }}>
+        <span>{progress.completed} de {progress.total} clientes</span>
+        <span className="font-mono">{percent}%</span>
+      </div>
+      <div className="w-full h-2 rounded-full mt-2 overflow-hidden" style={{ background: 'rgba(255,255,255,.08)' }}>
+        <div
+          className="h-full transition-all duration-300"
+          style={{ width: `${percent}%`, background: progress.finished ? '#22c55e' : '#f59e0b' }}
+        />
+      </div>
+      <p className="text-xs mt-2" style={{ color: progress.finished ? '#22c55e' : '#fbbf24' }}>
+        {progress.finished ? 'Testes concluídos' : `Testando ${progress.currentName}...`}
+      </p>
+      {!progress.finished && (
+        <p className="text-[11px] mt-1" style={{ color: '#64748b' }}>
+          Tempo estimado restante: ~{progress.etaSeconds}s
+        </p>
+      )}
+    </div>
+  );
+};
 
 // ── ClientCard ────────────────────────────────────────────────────────────────
 
@@ -38,100 +90,85 @@ const ClientCard = ({
   testing: boolean;
 }) => {
   const [confirmDel, setConfirmDel] = useState(false);
+  const isTesting = testing;
+  const portResults = client._portResults || [];
+  const ports = client.ports || [];
+
+  const getPortState = (port: number): 'ok' | 'error' | 'pending' => {
+    const result = portResults.find((p: any) => p.port === port);
+    if (result) return result.is_open ? 'ok' : 'error';
+    if (client.status === 'OK') return 'ok';
+    if (client.status === 'ERROR') return 'error';
+    return 'pending';
+  };
 
   return (
     <div
-      className="px-5 py-4 transition-colors"
+      className="px-5 py-4 transition-all duration-300"
       style={{
         borderBottom: '1px solid #333333',
-        background: client.status === 'ERROR' ? 'rgba(239,68,68,.02)' : 'transparent',
+        background: isTesting ? 'rgba(245,158,11,.07)' : 'transparent',
+        borderLeft: client.status === 'ERROR' && !isTesting ? '2px solid rgba(239,68,68,.45)' : '2px solid transparent',
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,.015)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = client.status === 'ERROR' ? 'rgba(239,68,68,.02)' : 'transparent'; }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.background = isTesting
+          ? 'rgba(245,158,11,.07)'
+          : 'transparent';
+      }}
     >
       <div className="flex items-start gap-3">
-        {/* Status dot */}
-        <div className={`${statusDot(client.status)} mt-2 flex-shrink-0`} />
+        <div className={`${isTesting ? 'dot dot-pending' : statusDot(client.status)} mt-2 flex-shrink-0`} />
 
-        {/* Info block */}
         <div className="flex-1 min-w-0">
-
-          {/* Row 1: name + status + CNPJ */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm text-white">{client.name}</span>
-            <span className={statusChip(client.status)}>{client.status}</span>
-            {client.group_name && (
-              <span
-                className="text-xs px-2 py-0.5 rounded font-semibold"
-                style={{ background: 'rgba(237,12,0,.1)', color: '#ed0c00', border: '1px solid rgba(237,12,0,.15)' }}
-              >
-                {client.group_name}
-              </span>
-            )}
-            {client.cnpj && (
-              <span className="font-mono text-xs" style={{ color: '#aaaaaa' }}>
-                {client.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}
-              </span>
-            )}
-          </div>
-
-          {/* Row 2: host + ports */}
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span className="flex items-center gap-1 font-mono text-xs" style={{ color: '#cccccc' }}>
-              <Globe size={11} style={{ color: '#ed0c00' }} />
-              {client.host}
+            <span className={isTesting ? 'chip chip-pending' : statusChip(client.status)}>
+              {isTesting ? 'Testando...' : client.status === 'ERROR' ? 'Fechada' : client.status === 'OK' ? 'Aberta' : 'Pendente'}
             </span>
-            {(client.ports || []).length > 0 && (
-              <>
-                <span className="text-xs" style={{ color: '#888888' }}>|</span>
-                <div className="flex gap-1 flex-wrap">
-                  {(client.ports || []).map((p: number) => (
-                    <span key={p} className="font-mono text-xs px-2 py-0.5 rounded" style={{ background: '#333333', color: '#cccccc', border: '1px solid #555555' }}>
-                      :{p}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
 
-          {/* Row 3: contact + timing */}
-          <div className="flex items-center gap-4 mt-1.5 flex-wrap text-xs" style={{ color: '#aaaaaa' }}>
-            {client.provedor_internet && (
-              <span className="flex items-center gap-1">
-                <Wifi size={10} /> {client.provedor_internet}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap text-xs" style={{ color: '#94a3b8' }}>
+            <Clock size={10} />
+            {client.last_test
+              ? new Date(client.last_test).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+              : 'Nunca testado'}
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-2">
+            {ports.length === 0 && (
+              <span className="font-mono text-xs px-2 py-1 rounded" style={{ background: 'rgba(71,85,105,.1)', color: '#94a3b8' }}>
+                Sem porta
               </span>
             )}
-            {client.phone && (
-              <a
-                href={`https://wa.me/55${client.phone.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 transition-colors"
-                style={{ color: '#aaaaaa' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#22c55e'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#aaaaaa'; }}
-                title="Abrir no WhatsApp"
-              >
-                <Phone size={10} /> {client.phone}
-              </a>
-            )}
-            {client.ip_interno && (
-              <span className="font-mono">{client.ip_interno}</span>
-            )}
-            {client.last_test ? (
-              <span className="flex items-center gap-1">
-                <Clock size={10} />
-                {new Date(client.last_test).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-              </span>
-            ) : (
-              <span style={{ color: '#888888', fontStyle: 'italic' }}>Nunca testado</span>
-            )}
-            {client.avg_response_ms && (
-              <span className="font-mono" style={{ color: '#ed0c00' }}>
-                {Math.round(client.avg_response_ms)}ms
-              </span>
-            )}
+            {ports.map((p: number) => {
+              const state = getPortState(p);
+              const label =
+                state === 'ok' ? '🟢 Aberta' : state === 'error' ? '🔴 Fechada' : '🟡 Testando...';
+              return (
+                <span
+                  key={p}
+                  className="font-mono text-xs px-2 py-1 rounded transition-colors duration-300"
+                  style={{
+                    background:
+                      state === 'ok'
+                        ? 'rgba(34,197,94,.12)'
+                        : state === 'error'
+                          ? 'rgba(239,68,68,.12)'
+                          : 'rgba(245,158,11,.12)',
+                    color: state === 'ok' ? '#4ade80' : state === 'error' ? '#f87171' : '#fbbf24',
+                    border:
+                      state === 'ok'
+                        ? '1px solid rgba(34,197,94,.25)'
+                        : state === 'error'
+                          ? '1px solid rgba(239,68,68,.25)'
+                          : '1px solid rgba(245,158,11,.25)',
+                  }}
+                >
+                  Porta {p} · {label}
+                </span>
+              );
+            })}
           </div>
         </div>
 
@@ -175,8 +212,9 @@ const Clients: React.FC = () => {
   const [testingAll, setTestAll]  = useState(false);
   const [modal, setModal]         = useState(false);
   const [editClient, setEdit]     = useState<any>(null);
-  const [sortKey, setSortKey]     = useState<Sort>('name');
+  const [sortKey, setSortKey]     = useState<Sort>('status');
   const [sortAsc, setSortAsc]     = useState(true);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress>(null);
 
   const load = useCallback(async () => {
     try {
@@ -189,16 +227,62 @@ const Clients: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  const applyClientResult = useCallback((id: number, result: any) => {
+    setClients((prev) =>
+      prev.map((client) => (client.id === id ? { ...client, ...normalizeTestResult(result) } : client))
+    );
+  }, []);
+
+  const runBatchTest = useCallback(async (targets: any[]) => {
+    if (!targets.length) return;
+
+    setTestAll(true);
+    const startedAt = Date.now();
+    setBatchProgress({ total: targets.length, completed: 0, currentName: '', finished: false, etaSeconds: 0 });
+
+    for (let index = 0; index < targets.length; index += 1) {
+      const target = targets[index];
+      setBatchProgress((prev) =>
+        prev ? { ...prev, currentName: target.name, completed: index } : prev
+      );
+      setTestingId(target.id);
+
+      try {
+        const response = await testClient(target.id);
+        applyClientResult(target.id, response.data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        const completed = index + 1;
+        const elapsedMs = Date.now() - startedAt;
+        const avgMsPerClient = elapsedMs / completed;
+        const remaining = Math.max(targets.length - completed, 0);
+        const etaSeconds = Math.max(0, Math.round((avgMsPerClient * remaining) / 1000));
+        setBatchProgress((prev) =>
+          prev ? { ...prev, completed, currentName: target.name, etaSeconds } : prev
+        );
+      }
+    }
+
+    setTestingId(null);
+    setTestAll(false);
+    setBatchProgress((prev) =>
+      prev ? { ...prev, currentName: '', finished: true, completed: prev.total, etaSeconds: 0 } : prev
+    );
+    setTimeout(() => setBatchProgress(null), 4000);
+  }, [applyClientResult]);
+
   const handleTest = async (id: number) => {
     setTestingId(id);
-    try { await testClient(id); await load(); }
+    try {
+      const response = await testClient(id);
+      applyClientResult(id, response.data);
+    }
     finally { setTestingId(null); }
   };
 
   const handleTestAll = async () => {
-    setTestAll(true);
-    try { await testAllClients(); await load(); }
-    finally { setTestAll(false); }
+    await runBatchTest(clients);
   };
 
   const handleDelete = async (id: number) => {
@@ -220,9 +304,16 @@ const Clients: React.FC = () => {
       return mQ && mG && mS;
     })
     .sort((a, b) => {
+      const statusDiff = (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99);
+      if (statusDiff !== 0) return statusDiff;
       let va = a[sortKey] ?? '', vb = b[sortKey] ?? '';
-      if (typeof va === 'string') va = va.toLowerCase();
-      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (sortKey === 'status') {
+        va = STATUS_RANK[a.status] ?? 99;
+        vb = STATUS_RANK[b.status] ?? 99;
+      } else {
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+      }
       return sortAsc ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0);
     });
 
@@ -254,7 +345,7 @@ const Clients: React.FC = () => {
             className="btn btn-success"
           >
             {testingAll ? <RefreshCw size={14} className="spin" /> : <Zap size={14} />}
-            {testingAll ? 'Testando...' : 'Testar Todos'}
+            {testingAll ? 'Testando...' : 'Testar Todos os Clientes'}
           </button>
           <button
             onClick={() => { setEdit(null); setModal(true); }}
@@ -264,6 +355,8 @@ const Clients: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <BatchProgressBar progress={batchProgress} />
 
       {/* Filters */}
       <div className="card overflow-hidden mb-0" style={{ borderRadius: '12px 12px 0 0', borderBottom: 'none' }}>

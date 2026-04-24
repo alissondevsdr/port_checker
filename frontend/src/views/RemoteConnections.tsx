@@ -4,6 +4,8 @@ import {
   Search,
   Edit2,
   Trash2,
+  Copy,
+  Check,
   AlertCircle,
   Monitor,
   ChevronRight,
@@ -138,6 +140,7 @@ const RemoteConnectionCard = ({
   onDelete: () => void;
 }) => {
   const [confirmDel, setConfirmDel] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const getSoftwareColor = (type: string) => {
     if (type === "AnyDesk")
@@ -181,6 +184,31 @@ const RemoteConnectionCard = ({
 
   const softwareStyle = getSoftwareColor(connection.connection_software);
   const typeStyle = getTypeColor(connection.connection_type);
+
+  const handleCopyConnection = async () => {
+    const value = connection.connection_string || "";
+    if (!value) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = value;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch (e) {
+      console.error("Erro ao copiar conexão:", e);
+    }
+  };
   
   return (
     <div
@@ -200,6 +228,25 @@ const RemoteConnectionCard = ({
             <span className="font-mono text-sm font-bold text-white tracking-wider">
               {connection.connection_string}
             </span>
+            <div className="relative group/copy">
+              <button
+                type="button"
+                onClick={handleCopyConnection}
+                className="btn btn-ghost p-1.5"
+                title={copied ? "Copiado" : "Copiar conexão"}
+                aria-label={copied ? "Conexão copiada" : "Copiar conexão"}
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+              </button>
+              {!copied && (
+                <span
+                  className="pointer-events-none absolute right-full top-1/2 z-50 mr-2 -translate-y-1/2 whitespace-nowrap rounded px-2 py-1 text-[10px] font-semibold tracking-wide shadow-md opacity-0 transition-opacity duration-150 group-hover/copy:opacity-100"
+                  style={{ background: "#111111", color: "#cbd5e1", border: "1px solid #1e293b" }}
+                >
+                  Copiar
+                </span>
+              )}
+            </div>
             <span
               className="text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-widest"
               style={softwareStyle}
