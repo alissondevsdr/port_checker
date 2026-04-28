@@ -8,6 +8,8 @@ import { RemoteController } from '../controllers/RemoteController.js';
 import { ReportController } from '../controllers/ReportController.js';
 import { ExcelController } from '../controllers/ExcelController.js';
 import { DownloadController } from '../controllers/DownloadController.js';
+import { AtendimentoController } from '../controllers/AtendimentoController.js';
+import { AtendimentoConfigController } from '../controllers/AtendimentoConfigController.js';
 import { fetchCNPJ } from '../services/cnpjService.js';
 import { handleError } from '../utils/errorHandler.js';
 
@@ -49,6 +51,23 @@ router.get('/remote-connections', RemoteController.getConnections);
 router.post('/remote-connections', RemoteController.createConnection);
 router.put('/remote-connections/:id', RemoteController.updateConnection);
 router.delete('/remote-connections/:id', RemoteController.deleteConnection);
+
+// Atendimento Configs
+router.get('/atendimento-configs/:tipo', AtendimentoConfigController.getAllByType);
+router.post('/atendimento-configs', AtendimentoConfigController.create);
+router.put('/atendimento-configs/:id', AtendimentoConfigController.update);
+router.delete('/atendimento-configs/:id', AtendimentoConfigController.delete);
+
+// Atendimentos
+router.get('/atendimentos', AtendimentoController.getAll);
+router.get('/atendimentos/stats', AtendimentoController.getStats);
+router.get('/atendimentos/:id', AtendimentoController.getById);
+router.post('/atendimentos', AtendimentoController.create);
+router.put('/atendimentos/:id', AtendimentoController.update);
+router.post('/atendimentos/:id/encerrar', AtendimentoController.end);
+router.post('/atendimentos/:id/cancelar', AtendimentoController.cancel);
+router.get('/atendimentos/:id/historico', AtendimentoController.getHistory);
+router.post('/atendimentos/:id/historico', AtendimentoController.addHistory);
 
 // Stats & Logs (Basic implementation for UI compatibility)
 router.get('/stats', async (req, res) => {

@@ -7,6 +7,8 @@ import {
   FileBarChart2,
   Download,
   LogOut,
+  Headphones,
+  Settings,
 } from "lucide-react";
 
 const NAV = [
@@ -14,6 +16,11 @@ const NAV = [
     id: "home",
     label: "Início",
     icon: Home,
+  },
+  {
+    id: "atendimentos",
+    label: "Atendimentos",
+    icon: Headphones,
   },
   {
     id: "port-checker",
@@ -39,6 +46,11 @@ const NAV = [
     id: "downloads",
     label: "Downloads",
     icon: Download,
+  },
+  {
+    id: "atendimento-configs",
+    label: "Config. Atendimento",
+    icon: Settings,
   },
 ];
 

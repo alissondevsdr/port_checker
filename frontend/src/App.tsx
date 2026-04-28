@@ -6,11 +6,15 @@ import RemoteConnections from './views/RemoteConnections';
 import SpreadsheetCleaner from './views/SpreadsheetCleaner';
 import ManualReports from './views/ManualReports';
 import Downloads from './views/Downloads';
+import Atendimentos from './views/Atendimentos';
+import AtendimentoConfigs from './views/AtendimentoConfigs';
+import AtendimentoDetail from './views/AtendimentoDetail';
 import Login from './views/Login';
 import './index.css';
 
 export default function App() {
   const [active, setActive] = useState('home');
+  const [selectedAtendimentoId, setSelectedAtendimentoId] = useState<number | null>(null);
   const [, setUser] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -56,6 +60,17 @@ export default function App() {
           {active === 'spreadsheet-cleaner' && <SpreadsheetCleaner />}
           {active === 'manual-reports' && <ManualReports />}
           {active === 'downloads' && <Downloads />}
+          {active === 'atendimentos' && (
+            selectedAtendimentoId ? (
+              <AtendimentoDetail 
+                atendimentoId={selectedAtendimentoId} 
+                onBack={() => setSelectedAtendimentoId(null)} 
+              />
+            ) : (
+              <Atendimentos onSelectAtendimento={setSelectedAtendimentoId} />
+            )
+          )}
+          {active === 'atendimento-configs' && <AtendimentoConfigs />}
         </div>
       </main>
     </div>

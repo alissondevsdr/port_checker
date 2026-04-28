@@ -115,6 +115,55 @@ export async function initializeSchema() {
       )
     `);
 
+    // 7. Atendimento Configs
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS atendimento_configs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome VARCHAR(255) NOT NULL,
+        tipo ENUM('origem', 'tipo', 'categoria', 'aplicacao', 'modulo') NOT NULL,
+        UNIQUE(nome, tipo)
+      )
+    `);
+
+    // 8. Atendimentos
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS atendimentos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        cliente_id INT NOT NULL,
+        atendente_id INT NOT NULL,
+        data_inicio DATETIME NOT NULL,
+        data_fim DATETIME,
+        origem_id INT NOT NULL,
+        tipo_id INT NOT NULL,
+        categoria_id INT,
+        aplicacao_id INT,
+        modulo_id INT,
+        problema_inicial TEXT NOT NULL,
+        status ENUM('ABERTO', 'ENCERRADO', 'CANCELADO') NOT NULL DEFAULT 'ABERTO',
+        tempo_decorrido INT, -- em minutos
+        FOREIGN KEY (cliente_id) REFERENCES clients(id),
+        FOREIGN KEY (atendente_id) REFERENCES users(id),
+        FOREIGN KEY (origem_id) REFERENCES atendimento_configs(id),
+        FOREIGN KEY (tipo_id) REFERENCES atendimento_configs(id),
+        FOREIGN KEY (categoria_id) REFERENCES atendimento_configs(id),
+        FOREIGN KEY (aplicacao_id) REFERENCES atendimento_configs(id),
+        FOREIGN KEY (modulo_id) REFERENCES atendimento_configs(id)
+      )
+    `);
+
+    // 9. Histórico de Respostas
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS historico_respostas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        atendimento_id INT NOT NULL,
+        atendente_id INT NOT NULL,
+        data_registro DATETIME NOT NULL,
+        descricao TEXT NOT NULL,
+        FOREIGN KEY (atendimento_id) REFERENCES atendimentos(id),
+        FOREIGN KEY (atendente_id) REFERENCES users(id)
+      )
+    `);
+
   } finally {
     connection.release();
   }
