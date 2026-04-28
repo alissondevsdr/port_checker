@@ -116,14 +116,14 @@ const SpreadsheetCleaner: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 fade-up">
       {/* Cabeçalho */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Zap size={28} className="text-red-500" />
           <h1 className="text-3xl font-bold text-white">Formatador de Planilhas</h1>
         </div>
-        <p className="text-gray-400 text-base">
+        <p className="text-gray-400 text-base" style={{ color: "#475569" }}>
           Envie uma planilha com produtos desorganizada e gere automaticamente uma versão padronizada e organizada.
         </p>
       </div>

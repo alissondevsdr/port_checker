@@ -1,7 +1,6 @@
 .env
 backend/node_modules
 frontend/node_modules
-run.bat
 /node_modules
 /dist
 # Dependências
@@ -26,11 +25,9 @@ logs/
 Thumbs.db
 *.txt
 *.bat
-ROADMAP_FERRAMENTAS.md
-SETUP_LOCAL.md
-run.bat
 *.vbs
-comandofrigo.md
-comandopadaria.md
 /downloads
 /backups
+/reports-project
+/skills
+/comands

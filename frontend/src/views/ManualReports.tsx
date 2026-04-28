@@ -529,9 +529,9 @@ const ManualReports: React.FC = () => {
       <div className="mb-7">
         <div className="flex items-center gap-3 mb-1">
           <FileBarChart2 size={22} style={{ color: '#ed0c00' }} />
-          <h2 className="text-xl font-bold text-white">Relatórios Manuais</h2>
+          <h2 className="text-3xl font-bold text-white">Relatórios Manuais</h2>
         </div>
-        <p className="text-sm" style={{ color: '#475569', paddingLeft: 34 }}>
+        <p className="text-base" style={{ color: '#475569', paddingLeft: 34 }}>
           Relatórios gerados via SQL direto no banco de dados do cliente — exportação em Excel formatado
         </p>
       </div>

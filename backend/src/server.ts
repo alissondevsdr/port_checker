@@ -8,6 +8,11 @@ import apiRoutes from './routes/api.js';
 
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+  console.error('❌ FATAL: JWT_SECRET not found in .env');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const serverDir = path.dirname(fileURLToPath(import.meta.url));

@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
-
+import bcrypt from 'bcryptjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -23,6 +23,16 @@ const pool = mysql.createPool({
 export async function initializeSchema() {
   const connection = await pool.getConnection();
   try {
+    // 0. Users
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        username   VARCHAR(255) NOT NULL UNIQUE,
+        password   VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // 1. Groups
     await connection.query(`
       CREATE TABLE IF NOT EXISTS \`groups\` (

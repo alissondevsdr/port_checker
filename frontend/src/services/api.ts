@@ -8,13 +8,43 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// Interceptor para adicionar o token JWT em cada requisição
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Interceptor para tratar erros
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    const msg = err.response?.data?.error || err.message || 'Erro desconhecido';
+    if (err.response?.status === 401) {
+      const isExpired = err.response?.data?.error === 'TOKEN_EXPIRED';
+      
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
+      // Avisar o usuário se o erro for de expiração
+      if (isExpired) {
+        alert('Sua sessão expirou por inatividade. Por favor, faça login novamente.');
+      }
+
+      // Redireciona para o login (home) se não estiver lá
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
+    }
+    const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Erro desconhecido';
     return Promise.reject(new Error(msg));
   }
 );
+
+// Auth
+export const login = (username: string, password: string) => 
+  api.post('/auth/login', { username, password });
 
 // Clients
 export const getClients = (groupId?: number) =>
@@ -39,7 +69,7 @@ export const getStats = () => api.get('/stats');
 export const getLogs = (params?: { limit?: number; client_id?: number }) =>
   api.get('/logs', { params });
 
-// Remote Connections
+// Remote Companies
 export const getRemoteCompanies = () => api.get('/remote-companies');
 export const createRemoteCompany = (name: string) => api.post('/remote-companies', { name });
 export const updateRemoteCompany = (id: number, name: string) => api.put(`/remote-companies/${id}`, { name });
@@ -52,19 +82,14 @@ export const deleteRemoteConnection = (id: number) => api.delete(`/remote-connec
 
 // Excel Processor
 export const processExcelFile = (fileBuffer: Uint8Array | ArrayBuffer, mode: 'simples' | 'normal' = 'simples') => {
-  // Converter Uint8Array para base64 sem usar apply (evita stack overflow em arquivos grandes)
   const bytes = fileBuffer instanceof ArrayBuffer ? new Uint8Array(fileBuffer) : fileBuffer;
-  
   let base64String = '';
-  const chunkSize = 8192; // Processar em chunks para evitar stack overflow
-  
+  const chunkSize = 8192;
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
     base64String += String.fromCharCode.apply(null, Array.from(chunk) as any);
   }
-  
   base64String = btoa(base64String);
-  
   return api.post('/excel/process', {
     file: base64String,
     mode,
@@ -97,9 +122,13 @@ export interface DownloadFile {
   modifiedAt: string;
 }
 
-export const getDownloads = () => api.get<DownloadFile[]>('/downloads');
-export const getDownloadUrl = (filename: string) =>
-  `${API_BASE_URL.replace(/\/api\/?$/, '')}/downloads/${encodeURIComponent(filename)}`;
+export const getDownloads = (type: 'general' | 'drivers' = 'general') => 
+  api.get<DownloadFile[]>('/downloads', { params: { type } });
 
+export const getDownloadUrl = (filename: string, subfolder?: string) => {
+  const base = API_BASE_URL.replace(/\/api\/?$/, '');
+  const path = subfolder ? `downloads/${subfolder}/${encodeURIComponent(filename)}` : `downloads/${encodeURIComponent(filename)}`;
+  return `${base}/${path}`;
+};
 
 export default api;

@@ -1,5 +1,5 @@
 import React from "react";
-import { FolderTree, Users, Monitor, FileText, FileBarChart2, Wrench, Download } from "lucide-react";
+import { Monitor, FileText, FileBarChart2, Wrench, Download } from "lucide-react";
 
 type ServiceButton = {
   id: string;
@@ -10,16 +10,10 @@ type ServiceButton = {
 
 const SERVICES: ServiceButton[] = [
   {
-    id: "groups",
-    title: "Grupos",
-    description: "Gerencie grupos do Port Checker.",
-    icon: FolderTree,
-  },
-  {
-    id: "clients",
-    title: "Clientes",
-    description: "Cadastre e acompanhe os clientes monitorados.",
-    icon: Users,
+    id: "port-checker",
+    title: "Verificar Portas",
+    description: "Verifique o status das portas TCP em tempo real.",
+    icon: Wrench,
   },
   {
     id: "remote-connections",

@@ -273,10 +273,12 @@ const GroupDetail = ({
   group,
   onBack,
   onEdit,
+  onAdd,
 }: {
   group: any;
   onBack: () => void;
   onEdit: (client: any) => void;
+  onAdd: () => void;
 }) => {
   const [clients, setClients]     = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -385,14 +387,22 @@ const GroupDetail = ({
             </p>
           </div>
         </div>
-        <button
-          onClick={handleTestAll}
-          disabled={testing || clients.length === 0}
-          className="btn btn-success"
-        >
-          {testing ? <RefreshCw size={14} className="spin" /> : <Zap size={14} />}
-          {testing ? 'Testando...' : 'Testar Todos no Grupo'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleTestAll}
+            disabled={testing || clients.length === 0}
+            className="btn btn-success"
+          >
+            {testing ? <RefreshCw size={14} className="spin" /> : <Zap size={14} />}
+            {testing ? 'Testando...' : 'Testar Todos'}
+          </button>
+          <button
+            onClick={onAdd}
+            className="btn btn-primary"
+          >
+            <Plus size={14} /> Novo Cliente
+          </button>
+        </div>
       </div>
 
       <BatchProgressBar progress={batchProgress} />
@@ -501,7 +511,7 @@ const GroupDetail = ({
             <Users size={32} style={{ color: '#1e293b', margin: '0 auto 12px' }} />
             <p className="text-sm" style={{ color: '#475569' }}>Nenhum cliente neste grupo.</p>
             <p className="text-xs mt-1" style={{ color: '#334155' }}>
-              Adicione clientes em <strong>Clientes</strong> e atribua a este grupo.
+              Clique em <strong>Novo Cliente</strong> acima para adicionar.
             </p>
           </div>
         ) : (
@@ -546,6 +556,7 @@ const Groups: React.FC = () => {
   const [creating, setCreating]     = useState(false);
   const [selected, setSelected]     = useState<any>(null);
   const [editClient, setEditClient] = useState<any>(null);
+  const [showClientModal, setShowClientModal] = useState(false);
   const [showForm, setShowForm]     = useState(false);
   const [search, setSearch]         = useState('');
 
@@ -586,14 +597,15 @@ const Groups: React.FC = () => {
         <GroupDetail
           group={selected}
           onBack={() => { setSelected(null); loadGroups(false); }}
-          onEdit={(c) => setEditClient(c)}
+          onEdit={(c) => { setEditClient(c); setShowClientModal(true); }}
+          onAdd={() => { setEditClient({ group_id: selected.id }); setShowClientModal(true); }}
         />
-        {editClient && (
+        {showClientModal && (
           <ClientModal
             client={editClient}
             groups={groups}
-            onClose={() => setEditClient(null)}
-            onSave={() => { setEditClient(null); loadGroups(); }}
+            onClose={() => { setEditClient(null); setShowClientModal(false); }}
+            onSave={() => { setEditClient(null); setShowClientModal(false); loadGroups(); }}
           />
         )}
       </>
