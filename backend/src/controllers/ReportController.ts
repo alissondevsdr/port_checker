@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import pool from '../database/connection.js';
 import { poolManager } from '../services/poolManager.js';
 import { handleError } from '../utils/errorHandler.js';
 import ExcelJS from 'exceljs';
@@ -79,6 +80,159 @@ export class ReportController {
       });
     } catch (error) {
       return handleError(res, error, 'Erro ao gerar relatório Frigo');
+    }
+  }
+
+  static async getAtendimentoReport(req: Request, res: Response) {
+    try {
+      const { startDate, endDate, atendenteId, clienteId, status } = req.query;
+
+      let query = `
+        SELECT 
+          a.id,
+          c.name as cliente,
+          u.username as atendente,
+          DATE_FORMAT(a.data_inicio, '%d/%m/%Y %H:%i') as data_inicio,
+          DATE_FORMAT(a.data_fim, '%d/%m/%Y %H:%i') as data_fim,
+          o.nome as origem,
+          t.nome as tipo,
+          cat.nome as categoria,
+          app.nome as aplicacao,
+          m.nome as modulo,
+          a.status,
+          a.tempo_decorrido
+        FROM atendimentos a
+        JOIN clients c ON a.cliente_id = c.id
+        JOIN users u ON a.atendente_id = u.id
+        JOIN atendimento_configs o ON a.origem_id = o.id
+        JOIN atendimento_configs t ON a.tipo_id = t.id
+        LEFT JOIN atendimento_configs cat ON a.categoria_id = cat.id
+        LEFT JOIN atendimento_configs app ON a.aplicacao_id = app.id
+        LEFT JOIN atendimento_configs m ON a.modulo_id = m.id
+        WHERE 1=1
+      `;
+
+      const params: any[] = [];
+
+      if (startDate) {
+        query += ' AND a.data_inicio >= ?';
+        params.push(`${String(startDate)} 00:00:00`);
+      }
+      if (endDate) {
+        query += ' AND a.data_inicio <= ?';
+        params.push(`${String(endDate)} 23:59:59`);
+      }
+      if (atendenteId) {
+        query += ' AND a.atendente_id = ?';
+        params.push(atendenteId);
+      }
+      if (clienteId) {
+        query += ' AND a.cliente_id = ?';
+        params.push(clienteId);
+      }
+      if (status) {
+        query += ' AND a.status = ?';
+        params.push(status);
+      }
+
+      query += ' ORDER BY a.data_inicio DESC';
+
+      const [rows]: any = await pool.query(query, params);
+      res.json(rows);
+    } catch (error) {
+      handleError(res, error, 'Erro ao gerar relatório de atendimentos');
+    }
+  }
+
+  static async exportAtendimentoReport(req: Request, res: Response) {
+    try {
+      const { startDate, endDate, atendenteId, clienteId, status } = req.query;
+
+      let query = `
+        SELECT 
+          a.id as ID,
+          c.name as Cliente,
+          u.username as Atendente,
+          DATE_FORMAT(a.data_inicio, '%d/%m/%Y %H:%i') as 'Data Início',
+          DATE_FORMAT(a.data_fim, '%d/%m/%Y %H:%i') as 'Data Fim',
+          o.nome as Origem,
+          t.nome as Tipo,
+          cat.nome as Categoria,
+          app.nome as Aplicação,
+          m.nome as Módulo,
+          a.status as Status,
+          a.tempo_decorrido as 'Duração (min)'
+        FROM atendimentos a
+        JOIN clients c ON a.cliente_id = c.id
+        JOIN users u ON a.atendente_id = u.id
+        JOIN atendimento_configs o ON a.origem_id = o.id
+        JOIN atendimento_configs t ON a.tipo_id = t.id
+        LEFT JOIN atendimento_configs cat ON a.categoria_id = cat.id
+        LEFT JOIN atendimento_configs app ON a.aplicacao_id = app.id
+        LEFT JOIN atendimento_configs m ON a.modulo_id = m.id
+        WHERE 1=1
+      `;
+
+      const params: any[] = [];
+
+      if (startDate) {
+        query += ' AND a.data_inicio >= ?';
+        params.push(`${String(startDate)} 00:00:00`);
+      }
+      if (endDate) {
+        query += ' AND a.data_inicio <= ?';
+        params.push(`${String(endDate)} 23:59:59`);
+      }
+      if (atendenteId) {
+        query += ' AND a.atendente_id = ?';
+        params.push(atendenteId);
+      }
+      if (clienteId) {
+        query += ' AND a.cliente_id = ?';
+        params.push(clienteId);
+      }
+      if (status) {
+        query += ' AND a.status = ?';
+        params.push(status);
+      }
+
+      query += ' ORDER BY a.data_inicio DESC';
+
+      const [rows]: any = await pool.query(query, params);
+
+      const workbook = new ExcelJS.Workbook();
+      const ws = workbook.addWorksheet('Atendimentos');
+
+      if (rows.length > 0) {
+        const columns = Object.keys(rows[0]);
+        ws.addRow(columns);
+        
+        // Estilo cabeçalho
+        ws.getRow(1).font = { bold: true };
+        ws.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFED0C00' }
+        };
+        ws.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+        rows.forEach((row: any) => {
+          ws.addRow(columns.map(col => row[col]));
+        });
+
+        // Ajustar largura colunas
+        ws.columns.forEach(column => {
+          column.width = 20;
+        });
+      }
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=relatorio_atendimentos.xlsx');
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.send(buffer);
+    } catch (error) {
+      handleError(res, error, 'Erro ao exportar relatório de atendimentos');
     }
   }
 

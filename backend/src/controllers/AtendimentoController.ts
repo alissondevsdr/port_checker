@@ -112,6 +112,15 @@ export class AtendimentoController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const currentUser = (req as any).user;
+      
+      const [rows]: any = await pool.query('SELECT atendente_id FROM atendimentos WHERE id = ?', [id]);
+      if (!rows[0]) return res.status(404).json({ error: 'Atendimento não encontrado' });
+      
+      if (rows[0].atendente_id !== currentUser.id && currentUser.role !== 'ADMINISTRADOR') {
+        return res.status(403).json({ error: 'Você só pode alterar os seus próprios atendimentos' });
+      }
+
       const {
         origem_id,
         tipo_id,
@@ -138,10 +147,14 @@ export class AtendimentoController {
   static async end(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const currentUser = (req as any).user;
       
-      // Calculate elapsed time
-      const [rows]: any = await pool.query('SELECT data_inicio FROM atendimentos WHERE id = ?', [id]);
+      const [rows]: any = await pool.query('SELECT atendente_id, data_inicio FROM atendimentos WHERE id = ?', [id]);
       if (!rows[0]) return res.status(404).json({ error: 'Atendimento não encontrado' });
+
+      if (rows[0].atendente_id !== currentUser.id && currentUser.role !== 'ADMINISTRADOR') {
+        return res.status(403).json({ error: 'Você só pode encerrar os seus próprios atendimentos' });
+      }
       
       const data_inicio = new Date(rows[0].data_inicio);
       const data_fim = new Date();
@@ -161,6 +174,15 @@ export class AtendimentoController {
   static async cancel(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const currentUser = (req as any).user;
+      
+      const [rows]: any = await pool.query('SELECT atendente_id FROM atendimentos WHERE id = ?', [id]);
+      if (!rows[0]) return res.status(404).json({ error: 'Atendimento não encontrado' });
+
+      if (rows[0].atendente_id !== currentUser.id && currentUser.role !== 'ADMINISTRADOR') {
+        return res.status(403).json({ error: 'Você só pode cancelar os seus próprios atendimentos' });
+      }
+
       await pool.query('UPDATE atendimentos SET status = "CANCELADO", data_fim = NOW() WHERE id = ?', [id]);
       res.json({ success: true });
     } catch (error) {
@@ -189,14 +211,21 @@ export class AtendimentoController {
     try {
       const { id } = req.params;
       const { descricao } = req.body;
-      const atendente_id = (req as any).user.id;
+      const currentUser = (req as any).user;
+
+      const [rows]: any = await pool.query('SELECT atendente_id FROM atendimentos WHERE id = ?', [id]);
+      if (!rows[0]) return res.status(404).json({ error: 'Atendimento não encontrado' });
+
+      if (rows[0].atendente_id !== currentUser.id && currentUser.role !== 'ADMINISTRADOR') {
+        return res.status(403).json({ error: 'Você só pode adicionar histórico aos seus próprios atendimentos' });
+      }
 
       const [result]: any = await pool.query(
         'INSERT INTO historico_respostas (atendimento_id, atendente_id, data_registro, descricao) VALUES (?, ?, NOW(), ?)',
-        [id, atendente_id, descricao]
+        [id, currentUser.id, descricao]
       );
 
-      res.json({ id: result.insertId, atendimento_id: id, atendente_id, descricao });
+      res.json({ id: result.insertId, atendimento_id: id, atendente_id: currentUser.id, descricao });
     } catch (error) {
       handleError(res, error, 'Erro ao adicionar histórico');
     }
@@ -204,7 +233,10 @@ export class AtendimentoController {
 
   static async getStats(req: Request, res: Response) {
     try {
-      const [stats]: any = await pool.query(`
+      const userId = (req as any).user.id;
+
+      // Estatísticas GERAIS (opcional, mantendo compatibilidade se necessário, mas focando no usuário)
+      const [general]: any = await pool.query(`
         SELECT 
           COUNT(*) as total,
           COALESCE(SUM(status = 'ABERTO'), 0) as aberto,
@@ -214,17 +246,34 @@ export class AtendimentoController {
         FROM atendimentos
       `);
       
-      const [todayStats]: any = await pool.query(`
+      // Estatísticas HOJE para o usuário logado
+      const [today]: any = await pool.query(`
         SELECT 
           COUNT(*) as total,
+          COALESCE(SUM(status = 'ENCERRADO'), 0) as encerrado,
+          COALESCE(SUM(status = 'CANCELADO'), 0) as cancelado,
           COALESCE(AVG(CASE WHEN status = 'ENCERRADO' THEN tempo_decorrido ELSE NULL END), 0) as tempo_medio
         FROM atendimentos
-        WHERE DATE(data_inicio) = CURDATE()
-      `);
+        WHERE atendente_id = ? AND DATE(data_inicio) = CURDATE()
+      `, [userId]);
+
+      // Estatísticas MÊS para o usuário logado
+      const [month]: any = await pool.query(`
+        SELECT 
+          COUNT(*) as total,
+          COALESCE(SUM(status = 'ENCERRADO'), 0) as encerrado,
+          COALESCE(SUM(status = 'CANCELADO'), 0) as cancelado,
+          COALESCE(AVG(CASE WHEN status = 'ENCERRADO' THEN tempo_decorrido ELSE NULL END), 0) as tempo_medio
+        FROM atendimentos
+        WHERE atendente_id = ? 
+          AND YEAR(data_inicio) = YEAR(CURDATE()) 
+          AND MONTH(data_inicio) = MONTH(CURDATE())
+      `, [userId]);
 
       res.json({
-        ...stats[0],
-        today: todayStats[0]
+        general: general[0],
+        today: today[0],
+        month: month[0]
       });
     } catch (error) {
       handleError(res, error, 'Erro ao obter estatísticas');

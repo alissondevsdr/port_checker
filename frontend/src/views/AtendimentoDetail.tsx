@@ -42,6 +42,15 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
   });
   const [form, setForm] = useState<any>(null);
 
+  const currentUser = React.useMemo(() => {
+    const userJson = localStorage.getItem('user');
+    return userJson ? JSON.parse(userJson) : null;
+  }, []);
+
+  const isOwner = atendimento?.atendente_id === currentUser?.id;
+  const isAdmin = currentUser?.role === 'ADMINISTRADOR';
+  const canEdit = (isOwner || isAdmin) && atendimento?.status === 'ABERTO';
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -163,7 +172,7 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
           </div>
         </div>
 
-        {atendimento.status === 'ABERTO' && (
+        {canEdit && (
           <div className="flex gap-3">
             <button onClick={handleCancel} className="bg-white/5 hover:bg-red-500/10 hover:text-red-500 text-gray-400 px-4 py-2 rounded-xl text-sm font-bold transition-all border border-white/10 flex items-center gap-2">
               <XCircle size={16} />
@@ -233,7 +242,7 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Origem</label>
                 <select
-                  disabled={atendimento.status !== 'ABERTO'}
+                  disabled={!canEdit}
                   className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#ed0c00] transition-colors appearance-none disabled:opacity-50"
                   value={form.origem_id}
                   onChange={e => setForm({...form, origem_id: e.target.value})}
@@ -244,7 +253,7 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Tipo</label>
                 <select
-                  disabled={atendimento.status !== 'ABERTO'}
+                  disabled={!canEdit}
                   className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#ed0c00] transition-colors appearance-none disabled:opacity-50"
                   value={form.tipo_id}
                   onChange={e => setForm({...form, tipo_id: e.target.value})}
@@ -255,7 +264,7 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Categoria</label>
                 <select
-                  disabled={atendimento.status !== 'ABERTO'}
+                  disabled={!canEdit}
                   className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#ed0c00] transition-colors appearance-none disabled:opacity-50"
                   value={form.categoria_id || ''}
                   onChange={e => setForm({...form, categoria_id: e.target.value})}
@@ -267,7 +276,7 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Aplicação</label>
                 <select
-                  disabled={atendimento.status !== 'ABERTO'}
+                  disabled={!canEdit}
                   className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#ed0c00] transition-colors appearance-none disabled:opacity-50"
                   value={form.aplicacao_id || ''}
                   onChange={e => setForm({...form, aplicacao_id: e.target.value})}
@@ -279,7 +288,7 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
               <div className="space-y-1.5 md:col-span-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Módulo</label>
                 <select
-                  disabled={atendimento.status !== 'ABERTO'}
+                  disabled={!canEdit}
                   className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#ed0c00] transition-colors appearance-none disabled:opacity-50"
                   value={form.modulo_id || ''}
                   onChange={e => setForm({...form, modulo_id: e.target.value})}
@@ -293,9 +302,9 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
             <div className="mt-8 space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Problema Inicial</label>
               <textarea
-                disabled={atendimento.status !== 'ABERTO'}
+                disabled={!canEdit}
                 rows={3}
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#ed0c00] transition-colors resize-none"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#ed0c00] transition-colors resize-none disabled:opacity-50"
                 value={form.problema_inicial}
                 onChange={e => setForm({...form, problema_inicial: e.target.value})}
               />
@@ -330,7 +339,7 @@ const AtendimentoDetail: React.FC<Props> = ({ atendimentoId, onBack }) => {
                 </div>
               ))}
 
-              {atendimento.status === 'ABERTO' && (
+              {canEdit && (
                 <div className="bg-[#111111] border border-[#ed0c00]/20 rounded-2xl p-6 shadow-lg shadow-[#ed0c00]/5">
                   <form onSubmit={handleAddHistory}>
                     <textarea

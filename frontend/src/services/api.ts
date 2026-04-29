@@ -148,4 +148,14 @@ export const getAtendimentoHistory = (id: number) => api.get(`/atendimentos/${id
 export const addAtendimentoHistory = (id: number, descricao: string) => api.post(`/atendimentos/${id}/historico`, { descricao });
 export const getAtendimentoStats = () => api.get('/atendimentos/stats');
 
+// Users
+export const getUsers = () => api.get('/users');
+export const createUser = (data: any) => api.post('/users', data);
+export const updateUser = (id: number, data: any) => api.put(`/users/${id}`, data);
+export const deleteUser = (id: number) => api.delete(`/users/${id}`);
+
+// Reports
+export const getAtendimentoReport = (params: any) => api.get('/reports/atendimentos', { params });
+export const exportAtendimentoReport = (params: any) => api.get('/reports/atendimentos/export', { params, responseType: 'blob' });
+
 export default api;

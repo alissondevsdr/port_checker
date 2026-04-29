@@ -9,6 +9,7 @@ import {
   LogOut,
   Headphones,
   Settings,
+  BarChart2,
 } from "lucide-react";
 
 const NAV = [
@@ -21,6 +22,11 @@ const NAV = [
     id: "atendimentos",
     label: "Atendimentos",
     icon: Headphones,
+  },
+  {
+    id: "relatorios",
+    label: "Relatórios",
+    icon: BarChart2,
   },
   {
     id: "port-checker",
@@ -49,7 +55,7 @@ const NAV = [
   },
   {
     id: "atendimento-configs",
-    label: "Config. Atendimento",
+    label: "Configurações",
     icon: Settings,
   },
 ];
@@ -61,6 +67,13 @@ interface Props {
 }
 
 const Sidebar: React.FC<Props> = ({ active, setActive, onLogout }) => {
+  const currentUser = React.useMemo(() => {
+    const userJson = localStorage.getItem('user');
+    return userJson ? JSON.parse(userJson) : null;
+  }, []);
+
+  const isAdmin = currentUser?.role === 'ADMINISTRADOR';
+
   return (
     <aside
       className="w-56 h-screen flex flex-col fixed left-0 top-0 z-40"
@@ -88,6 +101,9 @@ const Sidebar: React.FC<Props> = ({ active, setActive, onLogout }) => {
       {/* Nav */}
       <nav className="flex-1 p-3 flex flex-col gap-1 mt-2">
         {NAV.map(({ id, label, icon: Icon }) => {
+          if (!isAdmin && (id === 'atendimento-configs' || id === 'relatorios')) {
+            return null;
+          }
           return (
             <div key={id}>
               <button

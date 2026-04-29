@@ -7,7 +7,8 @@ import SpreadsheetCleaner from './views/SpreadsheetCleaner';
 import ManualReports from './views/ManualReports';
 import Downloads from './views/Downloads';
 import Atendimentos from './views/Atendimentos';
-import AtendimentoConfigs from './views/AtendimentoConfigs';
+import ConfiguracoesGerais from './views/ConfiguracoesGerais';
+import RelatoriosAtendimentos from './views/RelatoriosAtendimentos';
 import AtendimentoDetail from './views/AtendimentoDetail';
 import Login from './views/Login';
 import './index.css';
@@ -70,7 +71,8 @@ export default function App() {
               <Atendimentos onSelectAtendimento={setSelectedAtendimentoId} />
             )
           )}
-          {active === 'atendimento-configs' && <AtendimentoConfigs />}
+          {active === 'relatorios' && <RelatoriosAtendimentos />}
+          {active === 'atendimento-configs' && <ConfiguracoesGerais />}
         </div>
       </main>
     </div>

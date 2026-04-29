@@ -10,6 +10,7 @@ import { ExcelController } from '../controllers/ExcelController.js';
 import { DownloadController } from '../controllers/DownloadController.js';
 import { AtendimentoController } from '../controllers/AtendimentoController.js';
 import { AtendimentoConfigController } from '../controllers/AtendimentoConfigController.js';
+import { UserController } from '../controllers/UserController.js';
 import { fetchCNPJ } from '../services/cnpjService.js';
 import { handleError } from '../utils/errorHandler.js';
 
@@ -22,6 +23,12 @@ router.post('/auth/login', AuthController.login);
 router.use(authMiddleware);
 
 router.get('/auth/me', AuthController.me);
+
+// Users
+router.get('/users', UserController.getAll);
+router.post('/users', UserController.create);
+router.put('/users/:id', UserController.update);
+router.delete('/users/:id', UserController.delete);
 
 // Downloads
 router.get('/downloads', DownloadController.list);
@@ -99,6 +106,8 @@ router.get('/logs', async (req, res) => {
 });
 
 // Reports
+router.get('/reports/atendimentos', ReportController.getAtendimentoReport);
+router.get('/reports/atendimentos/export', ReportController.exportAtendimentoReport);
 router.get('/reports/client-ip', ReportController.getClientIp);
 router.post('/reports/padaria/st', ReportController.getPadariaReport);
 router.post('/reports/padaria/monofasico', ReportController.getPadariaReport);
@@ -111,7 +120,7 @@ router.get('/excel/template', ExcelController.getTemplate);
 // CNPJ Helper
 router.get('/cnpj/:cnpj', async (req, res) => {
   try {
-    const data = await fetchCNPJ(req.params.cnpj);
+    const data = await fetchCNPJ(req.params.cnpj as string);
     res.json({
       razao_social: data.razao_social || data.nome_fantasia || 'Empresa não identificada',
       nome_fantasia: data.nome_fantasia || '',

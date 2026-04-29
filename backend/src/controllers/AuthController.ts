@@ -49,7 +49,8 @@ export class AuthController {
       const token = jwt.sign(
         {
           id: user.id,
-          username: user.username
+          username: user.username,
+          role: user.role
         },
         secret,
         {
@@ -61,7 +62,8 @@ export class AuthController {
         token,
         user: {
           id: user.id,
-          username: user.username
+          username: user.username,
+          role: user.role
         }
       });
     } catch (error) {
