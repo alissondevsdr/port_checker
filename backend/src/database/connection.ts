@@ -122,9 +122,21 @@ export async function initializeSchema() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         nome VARCHAR(255) NOT NULL,
         tipo ENUM('origem', 'tipo', 'categoria', 'aplicacao', 'modulo') NOT NULL,
-        UNIQUE(nome, tipo)
+        parent_id INT DEFAULT NULL,
+        UNIQUE(nome, tipo, parent_id),
+        FOREIGN KEY (parent_id) REFERENCES atendimento_configs(id) ON DELETE CASCADE
       )
     `);
+
+    // Ensure parent_id exists if table was already created without it
+    try {
+      await connection.query('ALTER TABLE atendimento_configs ADD COLUMN parent_id INT DEFAULT NULL');
+      await connection.query('ALTER TABLE atendimento_configs ADD FOREIGN KEY (parent_id) REFERENCES atendimento_configs(id) ON DELETE CASCADE');
+      await connection.query('ALTER TABLE atendimento_configs DROP INDEX nome');
+      await connection.query('ALTER TABLE atendimento_configs ADD UNIQUE(nome, tipo, parent_id)');
+    } catch (e) {
+      // Column might already exist
+    }
 
     // 8. Atendimentos
     await connection.query(`
@@ -152,18 +164,28 @@ export async function initializeSchema() {
       )
     `);
 
-    // 9. Histórico de Respostas
+    // 10. Horários de Atendimento
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS historico_respostas (
+      CREATE TABLE IF NOT EXISTS atendimento_horarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        atendimento_id INT NOT NULL,
-        atendente_id INT NOT NULL,
-        data_registro DATETIME NOT NULL,
-        descricao TEXT NOT NULL,
-        FOREIGN KEY (atendimento_id) REFERENCES atendimentos(id),
-        FOREIGN KEY (atendente_id) REFERENCES users(id)
+        dia_semana VARCHAR(20) NOT NULL, -- 'SEGUNDA', 'TERCA', etc.
+        hora_inicio TIME NOT NULL,
+        hora_fim TIME NOT NULL,
+        ativo TINYINT(1) DEFAULT 1
       )
     `);
+
+    // Insert default schedules if empty
+    const [existing]: any = await connection.query('SELECT COUNT(*) as count FROM atendimento_horarios');
+    if (existing[0].count === 0) {
+      const dias = ['SEGUNDA-FEIRA', 'TERÇA-FEIRA', 'QUARTA-FEIRA', 'QUINTA-FEIRA', 'SEXTA-FEIRA', 'SÁBADO', 'DOMINGO'];
+      for (const dia of dias) {
+        await connection.query(
+          'INSERT INTO atendimento_horarios (dia_semana, hora_inicio, hora_fim, ativo) VALUES (?, ?, ?, ?)',
+          [dia, '08:00:00', '18:00:00', dia === 'SÁBADO' || dia === 'DOMINGO' ? 0 : 1]
+        );
+      }
+    }
 
   } finally {
     connection.release();

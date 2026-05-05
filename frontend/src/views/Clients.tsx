@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, RefreshCw, Edit2, Trash2,
   Play, Zap, Clock, ChevronDown, ChevronUp,
-  AlertCircle,
+  AlertCircle, X
 } from 'lucide-react';
 import { getClients, testClient, deleteClient, getGroups } from '../services/api';
 import ClientModal from '../components/ClientModal';
@@ -215,6 +215,7 @@ const Clients: React.FC = () => {
   const [sortKey, setSortKey]     = useState<Sort>('status');
   const [sortAsc, setSortAsc]     = useState(true);
   const [batchProgress, setBatchProgress] = useState<BatchProgress>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -286,8 +287,13 @@ const Clients: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    try { await deleteClient(id); await load(); }
-    catch (e: any) { alert('Erro ao excluir: ' + e.message); }
+    try { 
+      await deleteClient(id); 
+      await load(); 
+    } catch (e: any) { 
+      setError('Erro ao excluir: ' + e.message); 
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   const toggleSort = (k: Sort) => {
@@ -357,6 +363,16 @@ const Clients: React.FC = () => {
       </div>
 
       <BatchProgressBar progress={batchProgress} />
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl mb-6 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <AlertCircle size={18} />
+          <span className="text-sm font-bold">{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto opacity-50 hover:opacity-100">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card overflow-hidden mb-0" style={{ borderRadius: '12px 12px 0 0', borderBottom: 'none' }}>

@@ -133,9 +133,11 @@ export const getDownloadUrl = (filename: string, subfolder?: string) => {
 
 // Atendimento Configs
 export const getAtendimentoConfigs = (tipo: string) => api.get(`/atendimento-configs/${tipo}`);
-export const createAtendimentoConfig = (data: { nome: string; tipo: string }) => api.post('/atendimento-configs', data);
+export const createAtendimentoConfig = (data: { nome: string; tipo: string; parent_id?: number | null }) => api.post('/atendimento-configs', data);
 export const updateAtendimentoConfig = (id: number, nome: string) => api.put(`/atendimento-configs/${id}`, { nome });
 export const deleteAtendimentoConfig = (id: number) => api.delete(`/atendimento-configs/${id}`);
+
+// Atendimento Horarios
 
 // Atendimentos
 export const getAtendimentos = (params?: any) => api.get('/atendimentos', { params });
@@ -146,6 +148,10 @@ export const endAtendimento = (id: number) => api.post(`/atendimentos/${id}/ence
 export const cancelAtendimento = (id: number) => api.post(`/atendimentos/${id}/cancelar`);
 export const getAtendimentoHistory = (id: number) => api.get(`/atendimentos/${id}/historico`);
 export const addAtendimentoHistory = (id: number, descricao: string) => api.post(`/atendimentos/${id}/historico`, { descricao });
+export const updateAtendimentoHistory = (id: number, historyId: number, descricao: string) => 
+  api.put(`/atendimentos/${id}/historico/${historyId}`, { descricao });
+export const deleteAtendimentoHistory = (id: number, historyId: number) => 
+  api.delete(`/atendimentos/${id}/historico/${historyId}`);
 export const getAtendimentoStats = () => api.get('/atendimentos/stats');
 
 // Users

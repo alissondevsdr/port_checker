@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ArrowLeft, Play, Building2, Hash } from 'lucide-react';
 import { getAtendimentoConfigs, createAtendimento } from '../services/api';
+import { formatCpfCnpj, onlyNumbers } from '../utils/formatters';
 
 interface Props {
   client: any;
@@ -13,25 +14,20 @@ interface Props {
 const NewAtendimentoForm: React.FC<Props> = ({ client, onClose, onBack, onSuccess }) => {
   const [configs, setConfigs] = useState<any>({
     origem: [],
-    tipo: [],
-    categoria: [],
-    aplicacao: [],
-    modulo: []
+    tipo: []
   });
   const [form, setForm] = useState({
     origem_id: '',
     tipo_id: '',
-    categoria_id: '',
-    aplicacao_id: '',
-    modulo_id: '',
     problema_inicial: ''
   });
   const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<{title: string, msg: string, type: 'success' | 'danger'} | null>(null);
 
   useEffect(() => {
     const loadAllConfigs = async () => {
       try {
-        const types = ['origem', 'tipo', 'categoria', 'aplicacao', 'modulo'];
+        const types = ['origem', 'tipo'];
         const results = await Promise.all(types.map(t => getAtendimentoConfigs(t)));
         const newConfigs: any = {};
         types.forEach((t, i) => {
@@ -48,7 +44,7 @@ const NewAtendimentoForm: React.FC<Props> = ({ client, onClose, onBack, onSucces
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.origem_id || !form.tipo_id || !form.problema_inicial) {
-      alert('Preencha os campos obrigatórios (Origem, Tipo e Problema Inicial)');
+      setFeedback({ title: 'Campos Obrigatórios', msg: 'Preencha Origem, Tipo e Problema Inicial', type: 'danger' });
       return;
     }
 
@@ -60,7 +56,7 @@ const NewAtendimentoForm: React.FC<Props> = ({ client, onClose, onBack, onSucces
       });
       onSuccess(response.data.id);
     } catch (error) {
-      alert('Erro ao iniciar atendimento');
+      setFeedback({ title: 'Erro', msg: 'Erro ao iniciar atendimento', type: 'danger' });
     } finally {
       setLoading(false);
     }
@@ -68,7 +64,7 @@ const NewAtendimentoForm: React.FC<Props> = ({ client, onClose, onBack, onSucces
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0a0a0a] border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#0a0a0a] border border-white/10 rounded-3xl w-full max-w-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors">
@@ -82,6 +78,20 @@ const NewAtendimentoForm: React.FC<Props> = ({ client, onClose, onBack, onSucces
         </div>
 
         <form onSubmit={handleSubmit} className="p-8">
+          {feedback && (
+            <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 animate-in fade-in zoom-in duration-200 ${
+              feedback.type === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-green-500/10 border-green-500/20 text-green-500'
+            }`}>
+              <div className="flex-1">
+                <div className="text-xs font-bold uppercase tracking-wider">{feedback.title}</div>
+                <div className="text-xs opacity-80">{feedback.msg}</div>
+              </div>
+              <button type="button" onClick={() => setFeedback(null)}>
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
           {/* Client Info Summary */}
           <div className="bg-white/5 border border-white/5 rounded-2xl p-4 mb-8 flex items-center gap-6">
             <div className="flex items-center gap-3">
@@ -94,8 +104,10 @@ const NewAtendimentoForm: React.FC<Props> = ({ client, onClose, onBack, onSucces
             <div className="flex items-center gap-3">
               <Hash size={18} className="text-[#ed0c00]" />
               <div>
-                <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">CNPJ</div>
-                <div className="text-sm font-bold text-white">{client.cnpj || '---'}</div>
+                <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">
+                  {onlyNumbers(client.cnpj || '').length <= 11 ? 'CPF' : 'CNPJ'}
+                </div>
+                <div className="text-sm font-bold text-white">{formatCpfCnpj(client.cnpj || '') || '---'}</div>
               </div>
             </div>
           </div>
@@ -126,42 +138,6 @@ const NewAtendimentoForm: React.FC<Props> = ({ client, onClose, onBack, onSucces
                 {configs.tipo.map((c: any) => <option key={c.id} value={c.id} className="bg-[#111111]">{c.nome}</option>)}
               </select>
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Categoria</label>
-              <select
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#ed0c00] transition-colors appearance-none"
-                value={form.categoria_id}
-                onChange={e => setForm({...form, categoria_id: e.target.value})}
-              >
-                <option value="" className="bg-[#111111]">Selecione...</option>
-                {configs.categoria.map((c: any) => <option key={c.id} value={c.id} className="bg-[#111111]">{c.nome}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Aplicação</label>
-              <select
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#ed0c00] transition-colors appearance-none"
-                value={form.aplicacao_id}
-                onChange={e => setForm({...form, aplicacao_id: e.target.value})}
-              >
-                <option value="" className="bg-[#111111]">Selecione...</option>
-                {configs.aplicacao.map((c: any) => <option key={c.id} value={c.id} className="bg-[#111111]">{c.nome}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Módulo</label>
-              <select
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#ed0c00] transition-colors appearance-none"
-                value={form.modulo_id}
-                onChange={e => setForm({...form, modulo_id: e.target.value})}
-              >
-                <option value="" className="bg-[#111111]">Selecione...</option>
-                {configs.modulo.map((c: any) => <option key={c.id} value={c.id} className="bg-[#111111]">{c.nome}</option>)}
-              </select>
-            </div>
           </div>
 
           <div className="space-y-1.5 mb-8">
@@ -190,7 +166,7 @@ const NewAtendimentoForm: React.FC<Props> = ({ client, onClose, onBack, onSucces
               className="flex-[2] bg-[#ed0c00] hover:bg-[#ff0d00] text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-[#ed0c00]/20 flex items-center justify-center gap-2"
             >
               <Play size={18} fill="currentColor" />
-              {loading ? 'Iniciando...' : 'Iniciar Atendimento (F4)'}
+              {loading ? 'Iniciando...' : 'Iniciar Atendimento'}
             </button>
           </div>
         </form>

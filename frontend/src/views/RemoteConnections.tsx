@@ -334,6 +334,7 @@ const RemoteConnections: React.FC = () => {
   const [connections, setConnections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [feedback, setFeedback] = useState<{title: string, msg: string, type: 'success' | 'danger'} | null>(null);
   
   // Modals state
   const [companyModal, setCompanyModal] = useState(false);
@@ -377,8 +378,9 @@ const RemoteConnections: React.FC = () => {
     try {
       await deleteRemoteCompany(id);
       loadCompanies();
+      setFeedback({ title: 'Sucesso', msg: 'Empresa removida com sucesso', type: 'success' });
     } catch (e: any) {
-      alert("Erro ao excluir empresa: " + e.message);
+      setFeedback({ title: 'Erro ao excluir', msg: e.message, type: 'danger' });
     }
   };
 
@@ -386,8 +388,9 @@ const RemoteConnections: React.FC = () => {
     try {
       await deleteRemoteConnection(id);
       if (selectedCompany) loadConnections(selectedCompany.id);
+      setFeedback({ title: 'Sucesso', msg: 'Conexão removida com sucesso', type: 'success' });
     } catch (e: any) {
-      alert("Erro ao excluir conexão: " + e.message);
+      setFeedback({ title: 'Erro ao excluir', msg: e.message, type: 'danger' });
     }
   };
 
@@ -406,10 +409,28 @@ const RemoteConnections: React.FC = () => {
     );
   });
 
+  const FeedbackToast = () => feedback ? (
+    <div className="fixed bottom-8 right-8 z-[10001] animate-in slide-in-from-right duration-300">
+      <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${
+        feedback.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
+      }`}>
+        <AlertCircle size={20} />
+        <div>
+          <div className="font-bold text-sm">{feedback.title}</div>
+          <div className="text-xs opacity-80">{feedback.msg}</div>
+        </div>
+        <button onClick={() => setFeedback(null)} className="ml-4 opacity-50 hover:opacity-100">
+          <Check size={16} />
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   // Render Connections View
   if (selectedCompany) {
     return (
-      <div className="fade-up" key="connections-view">
+      <div className="fade-up max-w-6xl mx-auto" key="connections-view">
+        <FeedbackToast />
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
@@ -529,7 +550,8 @@ const RemoteConnections: React.FC = () => {
 
   // Render Companies View
   return (
-    <div className="fade-up" key="companies-view">
+    <div className="fade-up max-w-6xl mx-auto" key="companies-view">
+      <FeedbackToast />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>

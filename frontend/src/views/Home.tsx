@@ -1,5 +1,12 @@
-import React from "react";
-import { Monitor, FileText, FileBarChart2, Wrench, Download } from "lucide-react";
+import React, { useMemo } from "react";
+import {
+  Monitor,
+  FileText,
+  FileBarChart2,
+  Wrench,
+  Download,
+  Settings,
+} from "lucide-react";
 
 type ServiceButton = {
   id: string;
@@ -9,6 +16,24 @@ type ServiceButton = {
 };
 
 const SERVICES: ServiceButton[] = [
+  {
+    id: "dashboard",
+    title: "Dashboard",
+    description: "Acesse o painel de controle principal.",
+    icon: Monitor,
+  },
+  {
+    id: "atendimentos",
+    title: "Atendimentos",
+    description: "Gerencie os atendimentos em andamento.",
+    icon: Monitor,
+  },
+  {
+    id: "relatorios",
+    title: "Relatórios",
+    description: "Crie e consulte relatórios manuais.",
+    icon: FileBarChart2,
+  },
   {
     id: "port-checker",
     title: "Verificar Portas",
@@ -39,6 +64,12 @@ const SERVICES: ServiceButton[] = [
     description: "Baixe utilitários internos usados no suporte.",
     icon: Download,
   },
+  {
+    id: "atendimento-configs",
+    title: "Configurações de Atendimento",
+    description: "Gerencie as configurações do sistema de atendimento.",
+    icon: Settings,
+  },
 ];
 
 interface HomeProps {
@@ -46,23 +77,42 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ setActive }) => {
+  const currentUser = useMemo(() => {
+    const userJson = localStorage.getItem('user');
+    return userJson ? JSON.parse(userJson) : null;
+  }, []);
+
+  const isAdmin = currentUser?.role === 'ADMINISTRADOR';
+
+  const filteredServices = useMemo(() => {
+    return SERVICES.filter(service => {
+      if (service.id === 'atendimento-configs' && !isAdmin) return false;
+      return true;
+    });
+  }, [isAdmin]);
+
   return (
-    <div className="fade-up">
+    <div className="fade-up max-w-6xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-23 h-23 rounded-[23px] flex items-center justify-center flex-shrink-0 mr-4" style={{ background: "rgb(237, 12, 0)" }}>
+          <div
+            className="w-23 h-23 rounded-[23px] flex items-center justify-center flex-shrink-0 mr-4"
+            style={{ background: "rgb(237, 12, 0)" }}
+          >
             <Wrench size={55} className="text-white" />
           </div>
           <h1 className="text-5xl font-bold text-white">Suporte HUB</h1>
         </div>
         <p className="text-md mt-2" style={{ color: "#94a3b8" }}>
-          Esta plataforma centraliza utilitários internos para agilizar atendimento,<br/>
+          Esta plataforma centraliza utilitários internos para agilizar
+          atendimento,
+          <br />
           validações técnicas e rotinas operacionais da equipe.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {SERVICES.map(({ id, title, description, icon: Icon }) => (
+        {filteredServices.map(({ id, title, description, icon: Icon }) => (
           <button
             key={id}
             type="button"

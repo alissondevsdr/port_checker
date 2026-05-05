@@ -65,6 +65,8 @@ router.post('/atendimento-configs', AtendimentoConfigController.create);
 router.put('/atendimento-configs/:id', AtendimentoConfigController.update);
 router.delete('/atendimento-configs/:id', AtendimentoConfigController.delete);
 
+// Atendimento Horarios
+
 // Atendimentos
 router.get('/atendimentos', AtendimentoController.getAll);
 router.get('/atendimentos/stats', AtendimentoController.getStats);
@@ -75,6 +77,8 @@ router.post('/atendimentos/:id/encerrar', AtendimentoController.end);
 router.post('/atendimentos/:id/cancelar', AtendimentoController.cancel);
 router.get('/atendimentos/:id/historico', AtendimentoController.getHistory);
 router.post('/atendimentos/:id/historico', AtendimentoController.addHistory);
+router.put('/atendimentos/:id/historico/:historyId', AtendimentoController.updateHistory);
+router.delete('/atendimentos/:id/historico/:historyId', AtendimentoController.deleteHistory);
 
 // Stats & Logs (Basic implementation for UI compatibility)
 router.get('/stats', async (req, res) => {

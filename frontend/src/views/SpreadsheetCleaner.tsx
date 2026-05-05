@@ -116,7 +116,7 @@ const SpreadsheetCleaner: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 fade-up">
+    <div className="space-y-8 fade-up max-w-6xl mx-auto">
       {/* Cabeçalho */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">

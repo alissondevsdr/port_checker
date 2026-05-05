@@ -9,6 +9,7 @@ import {
   getClients, testClient, deleteClient,
 } from '../services/api';
 import ClientModal from '../components/ClientModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -367,7 +368,7 @@ const GroupDetail = ({
   const critical = clients.filter(c => c.status === 'ERROR');
 
   return (
-    <div className="fade-up">
+    <div className="fade-up max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
@@ -559,6 +560,7 @@ const Groups: React.FC = () => {
   const [showClientModal, setShowClientModal] = useState(false);
   const [showForm, setShowForm]     = useState(false);
   const [search, setSearch]         = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
   const loadGroups = useCallback(async (refreshSelected = true) => {
     try {
@@ -584,10 +586,14 @@ const Groups: React.FC = () => {
     finally { setCreating(false); }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Excluir grupo? Os clientes não serão removidos.')) return;
-    try { await deleteGroup(id); await loadGroups(); }
+  const onConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    try { await deleteGroup(confirmDelete); await loadGroups(); }
     catch (e) { console.error(e); }
+  };
+
+  const handleDelete = (id: number) => {
+    setConfirmDelete(id);
   };
 
   // Drill-down into group
@@ -613,7 +619,7 @@ const Groups: React.FC = () => {
   }
 
   return (
-    <div className="fade-up">
+    <div className="fade-up max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">Grupos</h2>
@@ -701,6 +707,16 @@ const Groups: React.FC = () => {
             ))}
         </div>
       )}
+
+      <ConfirmationModal 
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={onConfirmDelete}
+        title="Excluir Grupo"
+        description="Tem certeza que deseja excluir este grupo? Os clientes associados não serão removidos, mas ficarão sem grupo."
+        type="danger"
+        confirmText="Excluir Grupo"
+      />
     </div>
   );
 };

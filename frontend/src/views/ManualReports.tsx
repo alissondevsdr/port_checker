@@ -524,7 +524,7 @@ const PadariaReportCard: React.FC<{
 
 const ManualReports: React.FC = () => {
   return (
-    <div className="fade-up">
+    <div className="fade-up max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-7">
         <div className="flex items-center gap-3 mb-1">

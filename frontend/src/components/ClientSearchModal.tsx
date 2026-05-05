@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, UserPlus, ArrowRight } from 'lucide-react';
 import { getClients } from '../services/api';
+import { formatCpfCnpj } from '../utils/formatters';
 
 interface Props {
   onClose: () => void;
@@ -11,37 +12,29 @@ interface Props {
 
 const ClientSearchModal: React.FC<Props> = ({ onClose, onSelect, onRegisterNew }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [clients, setClients] = useState<any[]>([]);
+  const [allClients, setAllClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchTerm.length >= 2) {
-        searchClients();
-      } else {
-        setClients([]);
-      }
-    }, 300);
+    loadClients();
+  }, []);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
-
-  const searchClients = async () => {
+  const loadClients = async () => {
     setLoading(true);
     try {
       const response = await getClients();
-      // Filter manually for now as the API might not support name search yet
-      const filtered = response.data.filter((c: any) => 
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        c.cnpj.includes(searchTerm)
-      );
-      setClients(filtered);
+      setAllClients(response.data || []);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredClients = allClients.filter((c: any) => 
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (c.cnpj && c.cnpj.includes(searchTerm))
+  );
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
@@ -67,37 +60,37 @@ const ClientSearchModal: React.FC<Props> = ({ onClose, onSelect, onRegisterNew }
           </div>
 
           <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            {clients.map(client => (
-              <button
-                key={client.id}
-                onClick={() => onSelect(client)}
-                className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all group"
-              >
-                <div className="text-left">
-                  <div className="text-sm font-bold text-white group-hover:text-[#ed0c00] transition-colors">{client.name}</div>
-                  <div className="text-xs text-gray-500">{client.cnpj || 'Sem CNPJ'}</div>
-                </div>
-                <ArrowRight size={18} className="text-gray-600 group-hover:text-white transition-colors" />
-              </button>
-            ))}
+            {loading && allClients.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 text-sm">Carregando clientes...</div>
+            ) : (
+              <>
+                {filteredClients.map(client => (
+                  <button
+                    key={client.id}
+                    onClick={() => onSelect(client)}
+                    className="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all group"
+                  >
+                    <div className="text-left">
+                      <div className="text-sm font-bold text-white group-hover:text-[#ed0c00] transition-colors">{client.name}</div>
+                      <div className="text-xs text-gray-500">{formatCpfCnpj(client.cnpj) || 'Sem Documento'}</div>
+                    </div>
+                    <ArrowRight size={18} className="text-gray-600 group-hover:text-white transition-colors" />
+                  </button>
+                ))}
 
-            {searchTerm.length >= 2 && clients.length === 0 && !loading && (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-sm mb-4">Nenhum cliente encontrado.</p>
-                <button 
-                  onClick={onRegisterNew}
-                  className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl text-sm transition-colors border border-white/10"
-                >
-                  <UserPlus size={16} />
-                  Cadastrar Novo Cliente
-                </button>
-              </div>
-            )}
-
-            {searchTerm.length < 2 && (
-              <div className="text-center py-8 text-gray-500 text-sm italic">
-                Comece a digitar para buscar...
-              </div>
+                {filteredClients.length === 0 && !loading && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 text-sm mb-4">Nenhum cliente encontrado.</p>
+                    <button 
+                      onClick={onRegisterNew}
+                      className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl text-sm transition-colors border border-white/10"
+                    >
+                      <UserPlus size={16} />
+                      Cadastrar Novo Cliente
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

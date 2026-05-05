@@ -7,7 +7,11 @@ export class AtendimentoConfigController {
     try {
       const { tipo } = req.params;
       const [rows] = await pool.query(
-        'SELECT * FROM atendimento_configs WHERE tipo = ? ORDER BY nome ASC',
+        `SELECT ac.*, p.nome as parent_nome 
+         FROM atendimento_configs ac 
+         LEFT JOIN atendimento_configs p ON ac.parent_id = p.id 
+         WHERE ac.tipo = ? 
+         ORDER BY ac.nome ASC`,
         [tipo]
       );
       res.json(rows);
@@ -18,16 +22,18 @@ export class AtendimentoConfigController {
 
   static async create(req: Request, res: Response) {
     try {
-      const { nome, tipo } = req.body;
+      const { nome, tipo, parent_id } = req.body;
+      console.log('Criando config:', { nome, tipo, parent_id });
       if (!nome?.trim() || !tipo) {
         return res.status(400).json({ error: 'Nome e tipo são obrigatórios' });
       }
 
       const [result]: any = await pool.query(
-        'INSERT INTO atendimento_configs (nome, tipo) VALUES (?, ?)',
-        [nome.trim(), tipo]
+        'INSERT INTO atendimento_configs (nome, tipo, parent_id) VALUES (?, ?, ?)',
+        [nome.trim(), tipo, parent_id || null]
       );
-      res.json({ id: result.insertId, nome, tipo });
+      console.log('Resultado da inserção:', result);
+      res.json({ id: result.insertId, nome, tipo, parent_id });
     } catch (error) {
       handleError(res, error, 'Erro ao criar configuração');
     }

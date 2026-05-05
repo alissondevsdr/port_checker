@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { lookupCNPJ, createClient, updateClient } from '../services/api';
+import { formatCpfCnpj, formatPhone, onlyNumbers } from '../utils/formatters';
 
 interface Props {
   client?: any;
@@ -37,32 +38,6 @@ const EMPTY = {
   group_id: '',
   ip_interno: '',
   provedor_internet: '',
-};
-
-const onlyNumbers = (v: string) => v.replace(/\D/g, '');
-
-const formatCNPJ = (value: string) => {
-  const v = onlyNumbers(value).slice(0, 14);
-
-  return v
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2');
-};
-
-const formatPhone = (value: string) => {
-  const v = onlyNumbers(value).slice(0, 11);
-
-  if (v.length <= 10) {
-    return v
-      .replace(/^(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{4})(\d)/, '$1-$2');
-  }
-
-  return v
-    .replace(/^(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{5})(\d)/, '$1-$2');
 };
 
 const Field = memo(
@@ -126,7 +101,7 @@ const ClientModal: React.FC<Props> = ({
     setForm({
       ...EMPTY,
       ...client,
-      cnpj: formatCNPJ(client.cnpj || ''),
+      cnpj: formatCpfCnpj(client.cnpj || ''),
       phone: formatPhone(client.phone || ''),
       ports: Array.isArray(client.ports)
         ? client.ports.join(', ')
@@ -147,6 +122,8 @@ const ClientModal: React.FC<Props> = ({
     [form.cnpj]
   );
 
+  const docLabel = cleanCNPJ.length <= 11 ? 'CPF' : 'CNPJ';
+
   const updateField = (key: string, value: string) => {
     setForm((old) => ({
       ...old,
@@ -156,7 +133,7 @@ const ClientModal: React.FC<Props> = ({
 
   const handleLookupCNPJ = async () => {
     if (cleanCNPJ.length !== 14) {
-      setCnpjError('CNPJ inválido');
+      setCnpjError('A consulta automática está disponível apenas para CNPJ');
       return;
     }
 
@@ -305,17 +282,17 @@ const ClientModal: React.FC<Props> = ({
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label="CNPJ" icon={Hash}>
+            <Field label={docLabel} icon={Hash}>
               <div className="relative">
                 <input
                   className="field pr-10"
                   value={form.cnpj}
-                  placeholder="00.000.000/0000-00"
+                  placeholder={docLabel === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
                   onChange={(e) => {
                     setCnpjError('');
                     updateField(
                       'cnpj',
-                      formatCNPJ(
+                      formatCpfCnpj(
                         e.target.value
                       )
                     );

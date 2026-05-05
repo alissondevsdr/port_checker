@@ -203,7 +203,7 @@ const Downloads: React.FC = () => {
   };
 
   return (
-    <div className="fade-up">
+    <div className="fade-up max-w-6xl mx-auto">
       <div className="mb-7">
         <div className="flex items-center gap-3 mb-1">
           <HardDriveDownload size={28} style={{ color: "#ed0c00" }} />

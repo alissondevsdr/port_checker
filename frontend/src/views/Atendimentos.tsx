@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -14,6 +14,7 @@ import { getAtendimentoStats, getAtendimentos } from '../services/api';
 import ClientSearchModal from '../components/ClientSearchModal';
 import NewAtendimentoForm from '../components/NewAtendimentoForm';
 import ClientModal from '../components/ClientModal';
+import Skeleton from '../components/Skeleton';
 
 interface Props {
   onSelectAtendimento: (id: number) => void;
@@ -24,6 +25,7 @@ const Atendimentos: React.FC<Props> = ({ onSelectAtendimento }) => {
   const [allAtendimentos, setAllAtendimentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Modals state
   const [showSearch, setShowSearch] = useState(false);
@@ -38,7 +40,6 @@ const Atendimentos: React.FC<Props> = ({ onSelectAtendimento }) => {
   }, []);
 
   const loadDashboard = async () => {
-    setLoading(true);
     try {
       const [statsRes, allRes] = await Promise.all([
         getAtendimentoStats(),
@@ -67,6 +68,27 @@ const Atendimentos: React.FC<Props> = ({ onSelectAtendimento }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Se já houver scroll horizontal natural (ex: touchpad), não interfere
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        scrollContainer.scrollBy({
+          left: e.deltaY * 1.2, // Aumenta um pouco a velocidade
+          behavior: 'auto'
+        });
+      }
+    };
+
+    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
+    return () => scrollContainer.removeEventListener('wheel', handleWheel);
+  }, [loading]);
 
   const handleClientSelect = (client: any) => {
     setSelectedClient(client);
@@ -127,15 +149,15 @@ const Atendimentos: React.FC<Props> = ({ onSelectAtendimento }) => {
   );
 
   return (
-    <div className="text-white pb-12">
-      <div className="flex justify-between items-center mb-8">
+    <div className="text-white pb-12 fade-up">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Atendimentos</h1>
           <p className="text-gray-500 text-sm">Controle de fluxos e chamados ativos.</p>
         </div>
         <button 
           onClick={() => setShowSearch(true)}
-          className="bg-[#ed0c00] hover:bg-[#ff0d00] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-[#ed0c00]/20"
+          className="w-full md:w-auto bg-[#ed0c00] hover:bg-[#ff0d00] text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-[#ed0c00]/20"
         >
           <Plus size={20} />
           Novo Atendimento
@@ -143,42 +165,53 @@ const Atendimentos: React.FC<Props> = ({ onSelectAtendimento }) => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-        <StatCard 
-          label="Totais" 
-          todayValue={stats?.today?.total} 
-          monthValue={stats?.month?.total} 
-          icon={Users} 
-          color="blue" 
-        />
-        <StatCard 
-          label="Encerrados" 
-          todayValue={stats?.today?.encerrado} 
-          monthValue={stats?.month?.encerrado} 
-          icon={CheckCircle} 
-          color="green" 
-        />
-        <StatCard 
-          label="Cancelados" 
-          todayValue={stats?.today?.cancelado} 
-          monthValue={stats?.month?.cancelado} 
-          icon={XCircle} 
-          color="red" 
-        />
-        <StatCard 
-          label="Tempo Médio" 
-          todayValue={stats?.today?.tempo_medio} 
-          monthValue={stats?.month?.tempo_medio} 
-          icon={Clock} 
-          color="purple" 
-          isTime 
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12">
+        {loading && !stats ? (
+          <>
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32 hidden xl:block" />
+          </>
+        ) : (
+          <>
+            <StatCard 
+              label="Totais" 
+              todayValue={stats?.today?.total} 
+              monthValue={stats?.month?.total} 
+              icon={Users} 
+              color="blue" 
+            />
+            <StatCard 
+              label="Encerrados" 
+              todayValue={stats?.today?.encerrado} 
+              monthValue={stats?.month?.encerrado} 
+              icon={CheckCircle} 
+              color="green" 
+            />
+            <StatCard 
+              label="Cancelados" 
+              todayValue={stats?.today?.cancelado} 
+              monthValue={stats?.month?.cancelado} 
+              icon={XCircle} 
+              color="red" 
+            />
+            <StatCard 
+              label="Tempo Médio" 
+              todayValue={stats?.today?.tempo_medio} 
+              monthValue={stats?.month?.tempo_medio} 
+              icon={Clock} 
+              color="purple" 
+              isTime 
+            />
+          </>
+        )}
       </div>
 
       <div className="space-y-12">
         {/* SECTION: MEUS ATENDIMENTOS (Destaque) */}
         <div>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-6 px-2 md:px-0">
             <div className="w-10 h-10 rounded-xl bg-[#ed0c00]/10 flex items-center justify-center text-[#ed0c00]">
               <User size={20} />
             </div>
@@ -186,51 +219,64 @@ const Atendimentos: React.FC<Props> = ({ onSelectAtendimento }) => {
               <h2 className="text-xl font-bold">Meus atendimentos</h2>
               <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">Atendimentos que você está conduzindo</p>
             </div>
-            <div className="ml-auto bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs font-bold text-gray-400">
-              {myAtendimentos.length} chamados
-            </div>
+            {!loading && (
+              <div className="ml-auto bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs font-bold text-gray-400">
+                {myAtendimentos.length} chamados
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {myAtendimentos.map(item => (
-              <div 
-                key={item.id}
-                onClick={() => onSelectAtendimento(item.id)}
-                className="bg-[#1a1a1a] border-2 border-[#ed0c00]/30 hover:border-[#ed0c00] rounded-3xl p-6 transition-all cursor-pointer group relative overflow-hidden shadow-xl"
-              >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-[#ed0c00]/5 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150" />
-                
-                <div className="flex justify-between items-start mb-4 relative z-10">
-                  <span className="text-[10px] font-bold text-gray-500 font-mono tracking-tighter">#{item.id.toString().padStart(5, '0')}</span>
-                </div>
-
-                <div className="mb-6 relative z-10">
-                  <div className="text-lg font-black text-white group-hover:text-[#ed0c00] transition-colors mb-1 truncate">
-                    {item.cliente_nome}
+          <div 
+            ref={scrollContainerRef}
+            className="flex gap-6 overflow-x-auto pb-6 custom-scrollbar snap-x snap-proximity"
+          >
+            {loading ? (
+              <>
+                <Skeleton className="min-w-[320px] h-[220px]" />
+                <Skeleton className="min-w-[320px] h-[220px]" />
+                <Skeleton className="min-w-[320px] h-[220px]" />
+              </>
+            ) : (
+              myAtendimentos.map(item => (
+                <div 
+                  key={item.id}
+                  onClick={() => onSelectAtendimento(item.id)}
+                  className="bg-[#1a1a1a] border-2 border-[#ed0c00]/30 hover:border-[#ed0c00] rounded-3xl p-6 transition-all cursor-pointer group relative overflow-hidden shadow-xl min-w-[300px] md:min-w-[320px] max-w-[320px] snap-start"
+                >
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-[#ed0c00]/5 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-150" />
+                  
+                  <div className="flex justify-between items-start mb-4 relative z-10">
+                    <span className="text-[10px] font-bold text-gray-500 font-mono tracking-tighter">#{item.id.toString().padStart(5, '0')}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-400 text-xs">
-                    <Clock size={12} className="text-[#ed0c00]" />
-                    <span>Iniciado há {Math.round((new Date().getTime() - new Date(item.data_inicio).getTime()) / 60000)} min</span>
+
+                  <div className="mb-6 relative z-10">
+                    <div className="text-lg font-black text-white group-hover:text-[#ed0c00] transition-colors mb-1 truncate">
+                      {item.cliente_nome}
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-400 text-xs">
+                      <Clock size={12} className="text-[#ed0c00]" />
+                      <span>Iniciado há {Math.round((new Date().getTime() - new Date(item.data_inicio).getTime()) / 60000)} min</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/40 rounded-2xl p-4 mb-6 relative z-10">
+                    <div className="text-[10px] text-gray-500 uppercase font-black mb-2 flex items-center gap-1">
+                      <MessageSquare size={10} /> Problema Relatado
+                    </div>
+                    <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed italic">"{item.problema_inicial}"</p>
+                  </div>
+
+                  <div className="flex items-center justify-between relative z-10">
+                    <span className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-gray-400 font-bold uppercase">
+                      {item.tipo_nome}
+                    </span>
                   </div>
                 </div>
-
-                <div className="bg-black/40 rounded-2xl p-4 mb-6 relative z-10">
-                  <div className="text-[10px] text-gray-500 uppercase font-black mb-2 flex items-center gap-1">
-                    <MessageSquare size={10} /> Problema Relatado
-                  </div>
-                  <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed italic">"{item.problema_inicial}"</p>
-                </div>
-
-                <div className="flex items-center justify-between relative z-10">
-                  <span className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-gray-400 font-bold uppercase">
-                    {item.tipo_nome}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
             
-            {myAtendimentos.length === 0 && !loading && (
-              <div className="col-span-full bg-[#111111] border-2 border-dashed border-white/5 rounded-3xl p-12 text-center">
+            {!loading && myAtendimentos.length === 0 && (
+              <div className="w-full bg-[#111111] border-2 border-dashed border-white/5 rounded-3xl p-12 text-center">
                 <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-600">
                   <CheckCircle size={32} />
                 </div>
@@ -242,85 +288,97 @@ const Atendimentos: React.FC<Props> = ({ onSelectAtendimento }) => {
         </div>
 
         {/* SECTION: TODOS ATENDIMENTOS (Compacto) */}
-        <div>
-          <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+        <div className="px-2 md:px-0">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 border-b border-white/5 pb-4 gap-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
                 <Users size={18} />
               </div>
               <div>
                 <h2 className="text-lg font-bold">Atendimentos em aberto</h2>
-                <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold">Acompanhe o que os outros consultores estão fazendo</p>
+                <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold">Fila de espera global</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                <input 
-                  type="text" 
-                  placeholder="Pesquisar na fila..." 
-                  className="bg-black border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-blue-500 w-64 transition-all"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                />
-              </div>
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+              <input 
+                type="text" 
+                placeholder="Pesquisar na fila..." 
+                className="w-full bg-black border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-blue-500 transition-all"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
 
           <div className="bg-[#111111] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="bg-white/5 text-gray-400 font-bold uppercase tracking-wider">
-                  <th className="px-6 py-4">ID</th>
-                  <th className="px-6 py-4">Cliente</th>
-                  <th className="px-6 py-4">Consultor</th>
-                  <th className="px-6 py-4">Tipo</th>
-                  <th className="px-6 py-4">Ação</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {otherAtendimentos.map(item => (
-                  <tr 
-                    key={item.id} 
-                    onClick={() => onSelectAtendimento(item.id)}
-                    className="hover:bg-white/[0.02] transition-colors cursor-pointer group"
-                  >
-                    <td className="px-6 py-4 font-mono text-gray-500">#{item.id.toString().padStart(5, '0')}</td>
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-gray-200 group-hover:text-blue-400 transition-colors">{item.cliente_nome}</div>
-                      <div className="text-[10px] text-gray-500 truncate max-w-[200px]">{item.problema_inicial}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-black text-gray-500 border border-white/10">
-                          {item.atendente_nome?.substring(0, 2).toUpperCase()}
-                        </div>
-                        <span className="text-gray-400 font-medium">{item.atendente_nome}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="bg-white/5 px-2 py-1 rounded text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-                        {item.tipo_nome}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-blue-500/50 group-hover:text-blue-400 transition-all font-bold flex items-center gap-1">
-                        Visualizar <ChevronRight size={14} />
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[600px]">
+                <thead>
+                  <tr className="bg-white/5 text-gray-400 font-bold uppercase tracking-wider">
+                    <th className="px-6 py-4">ID</th>
+                    <th className="px-6 py-4">Cliente</th>
+                    <th className="px-6 py-4">Consultor</th>
+                    <th className="px-6 py-4">Tipo</th>
+                    <th className="px-6 py-4">Ação</th>
                   </tr>
-                ))}
-                
-                {otherAtendimentos.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 italic">
-                      Nenhum outro atendimento na fila correspondente à busca.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {loading ? (
+                    Array(5).fill(0).map((_, i) => (
+                      <tr key={i}>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-12" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                        <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
+                      </tr>
+                    ))
+                  ) : (
+                    otherAtendimentos.map(item => (
+                      <tr 
+                        key={item.id} 
+                        onClick={() => onSelectAtendimento(item.id)}
+                        className="hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                      >
+                        <td className="px-6 py-4 font-mono text-gray-500">#{item.id.toString().padStart(5, '0')}</td>
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-gray-200 group-hover:text-blue-400 transition-colors">{item.cliente_nome}</div>
+                          <div className="text-[10px] text-gray-500 truncate max-w-[200px]">{item.problema_inicial}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-black text-gray-500 border border-white/10">
+                              {item.atendente_nome?.substring(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-gray-400 font-medium">{item.atendente_nome}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="bg-white/5 px-2 py-1 rounded text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                            {item.tipo_nome}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-blue-500/50 group-hover:text-blue-400 transition-all font-bold flex items-center gap-1">
+                            Visualizar <ChevronRight size={14} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  
+                  {!loading && otherAtendimentos.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500 italic">
+                        Nenhum outro atendimento na fila correspondente à busca.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
